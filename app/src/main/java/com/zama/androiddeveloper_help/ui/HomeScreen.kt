@@ -46,6 +46,7 @@ fun HomeScreen(
     onProfileClick: () -> Unit = {},
     dueCount: Int = 0,
     onReviewClick: () -> Unit = {},
+    onSolyankaClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier.fillMaxSize()) {
@@ -94,11 +95,43 @@ fun HomeScreen(
                     ReviewCard(dueCount = dueCount, onClick = onReviewClick)
                 }
                 item {
+                    MixedCard(onClick = onSolyankaClick)
+                }
+                item {
                     MyDecksCard(deckCount = deckCount, onClick = onDecksClick)
                 }
                 items(topics, key = { it.id }) { topic ->
                     TopicCard(topic = topic, onClick = { onTopicClick(topic) })
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun MixedCard(onClick: () -> Unit) {
+    Card(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(text = "🎲", style = MaterialTheme.typography.headlineSmall)
+            Spacer(modifier = Modifier.width(16.dp))
+            Column {
+                Text(
+                    text = "Солянка",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text(
+                    text = "Перемешать вопросы из разных тем",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
     }

@@ -24,6 +24,7 @@ import com.zama.androiddeveloper_help.ui.ArticleScreen
 import com.zama.androiddeveloper_help.ui.DeckEditorScreen
 import com.zama.androiddeveloper_help.ui.DecksScreen
 import com.zama.androiddeveloper_help.ui.HomeScreen
+import com.zama.androiddeveloper_help.ui.MixedQuizScreen
 import com.zama.androiddeveloper_help.ui.ProfileScreen
 import com.zama.androiddeveloper_help.ui.ReviewScreen
 import com.zama.androiddeveloper_help.ui.QuizScreen
@@ -83,7 +84,8 @@ fun AppNav(
                     deckCount = home.decks.size,
                     onProfileClick = { navController.navigate("profile") },
                     dueCount = dueCount,
-                    onReviewClick = { navController.navigate("review") }
+                    onReviewClick = { navController.navigate("review") },
+                    onSolyankaClick = { navController.navigate("solyanka") }
                 )
             }
             composable("profile") {
@@ -132,6 +134,19 @@ fun AppNav(
                 QuizScreen(
                     viewModel = viewModel,
                     onBack = { navController.popBackStack("decks", false) }
+                )
+            }
+            composable("solyanka") {
+                MixedQuizScreen(
+                    viewModel = viewModel,
+                    onStart = { navController.navigate("mixedQuiz") },
+                    onBack = { navController.popBackStack() }
+                )
+            }
+            composable("mixedQuiz") {
+                QuizScreen(
+                    viewModel = viewModel,
+                    onBack = { navController.popBackStack("home", false) }
                 )
             }
             composable("review") {

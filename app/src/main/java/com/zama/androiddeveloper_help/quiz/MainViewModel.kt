@@ -40,8 +40,12 @@ data class QuizUiState(
     val topicId: String? = null,
     val deckId: String? = null,
     val isReview: Boolean = false,
-    /** questionId → topicId (для повторения вопросов встроенных тем). */
+    /** questionId → topicId (для повторения и солянки из разных тем). */
     val reviewTopicIds: Map<String, String> = emptyMap(),
+    /** Настройки солянки для перезапуска. */
+    val mixedTopics: List<String> = emptyList(),
+    val mixedCount: Int = 0,
+    val mixedIncludeCards: Boolean = false,
     val questions: List<Question> = emptyList(),
     val currentIndex: Int = 0,
     val selectedOption: Int? = null,
@@ -173,19 +177,18 @@ class MainViewModel(
             )
         }
         viewModelScope.launch {
-            if (state.isReview) {
-                state.reviewTopicIds[question.id]?.let { topicId ->
-                    progressRepository.recordAnswer(topicId, question.id, correct, System.currentTimeMillis())
-                }
+            val progressTopic = state.reviewTopicIds[question.id] ?: topicId
+            if (state.deckId != null) {
                 UserCardsAsQuestions.cardId(question)?.let { cardId ->
                     deckRepository.recordCardAnswer(cardId, correct, System.currentTimeMillis())
                 }
-            } else if (state.deckId != null) {
+            } else if (progressTopic != null) {
+                progressRepository.recordAnswer(progressTopic, question.id, correct, System.currentTimeMillis())
+            } else {
+                // Солянка может содержать свои карточки без привязки к теме.
                 UserCardsAsQuestions.cardId(question)?.let { cardId ->
                     deckRepository.recordCardAnswer(cardId, correct, System.currentTimeMillis())
                 }
-            } else if (topicId != null) {
-                progressRepository.recordAnswer(topicId, question.id, correct, System.currentTimeMillis())
             }
             profileRepository.addXp(xp)
             checkAchievements()
@@ -248,6 +251,41 @@ class MainViewModel(
         _quiz.update { QuizUiState() }
     }
 
+    /** Солянка: случайные вопросы из выбранных тем и (опционально) свои карточки. */
+    fun startMixedQuiz(topicSelection: List<String>, count: Int, includeUserCards: Boolean) {
+        viewModelScope.launch {
+            _quiz.update { QuizUiState(loading = true) }
+            val topics = if (topicSelection.isEmpty()) {
+                contentRepository.loadTopics().map { it.id }
+            } else topicSelection
+            val mapping = mutableMapOf<String, String>()
+            val pool = mutableListOf<Question>()
+            topics.forEach { topicId ->
+                contentRepository.loadQuestions(topicId).forEach { question ->
+                    mapping[question.id] = topicId
+                    pool.add(question)
+                }
+            }
+            if (includeUserCards) {
+                val cards = deckRepository.observeAllCards().first()
+                cards.forEach { pool.add(UserCardsAsQuestions.toQuestion(it)) }
+            }
+            val picked = pool.shuffled().take(count)
+            _quiz.update {
+                it.copy(
+                    questions = picked,
+                    loading = false,
+                    loaded = true,
+                    finished = picked.isEmpty(),
+                    reviewTopicIds = mapping.filterKeys { id -> picked.any { it.id == id } },
+                    mixedTopics = topicSelection,
+                    mixedCount = count,
+                    mixedIncludeCards = includeUserCards
+                )
+            }
+        }
+    }
+
     fun refreshDueCount() {
         viewModelScope.launch {
             val now = System.currentTimeMillis()
@@ -297,6 +335,7 @@ class MainViewModel(
         val state = _quiz.value
         when {
             state.isReview -> startReview()
+            state.mixedCount > 0 -> startMixedQuiz(state.mixedTopics, state.mixedCount, state.mixedIncludeCards)
             state.deckId != null -> startUserQuiz(state.deckId)
             state.topicId != null -> startQuiz(state.topicId)
         }
