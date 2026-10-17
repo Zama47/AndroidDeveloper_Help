@@ -21,6 +21,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.zama.androiddeveloper_help.quiz.MainViewModel
 import com.zama.androiddeveloper_help.ui.ArticleScreen
+import com.zama.androiddeveloper_help.ui.DeckEditorScreen
+import com.zama.androiddeveloper_help.ui.DecksScreen
 import com.zama.androiddeveloper_help.ui.HomeScreen
 import com.zama.androiddeveloper_help.ui.QuizScreen
 import com.zama.androiddeveloper_help.ui.TopicScreen
@@ -73,7 +75,51 @@ fun AppNav(
                         viewModel.loadArticle(topic.id)
                         viewModel.startQuiz(topic.id)
                         navController.navigate("topic/${topic.id}")
+                    },
+                    onDecksClick = { navController.navigate("decks") },
+                    deckCount = home.decks.size
+                )
+            }
+            composable("decks") {
+                val home by viewModel.home.collectAsState()
+                DecksScreen(
+                    decks = home.decks,
+                    onBack = { navController.popBackStack() },
+                    onDeckClick = { deck -> navController.navigate("deck/${deck.id}") },
+                    onCreateDeck = { title, description -> viewModel.createDeck(title, description) }
+                )
+            }
+            composable("deck/{deckId}") { entry ->
+                val deckId = entry.arguments?.getString("deckId") ?: return@composable
+                val deck by viewModel.observeDeck(deckId)
+                    .collectAsState(initial = null)
+                val cards by viewModel.observeDeckCards(deckId)
+                    .collectAsState(initial = emptyList())
+
+                DeckEditorScreen(
+                    deck = deck,
+                    cards = cards,
+                    onBack = { navController.popBackStack() },
+                    onDeckSave = { title, description -> viewModel.renameDeck(deckId, title, description) },
+                    onDeckDelete = {
+                        viewModel.deleteDeck(deckId)
+                        navController.popBackStack("decks", false)
+                    },
+                    onDeckResetProgress = { viewModel.resetDeckProgress(deckId) },
+                    onCardSave = { cardId, front, back, options, correctIndex ->
+                        viewModel.saveCard(deckId, cardId, front, back, options, correctIndex)
+                    },
+                    onCardDelete = { cardId -> viewModel.deleteCard(cardId) },
+                    onStartQuiz = {
+                        viewModel.startUserQuiz(deckId)
+                        navController.navigate("quiz/$deckId")
                     }
+                )
+            }
+            composable("quiz/{deckId}") { entry ->
+                QuizScreen(
+                    viewModel = viewModel,
+                    onBack = { navController.popBackStack("decks", false) }
                 )
             }
             composable("topic/{topicId}") { entry ->

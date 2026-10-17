@@ -6,19 +6,26 @@ import com.zama.androiddeveloper_help.data.ContentRepository
 import com.zama.androiddeveloper_help.data.Question
 import com.zama.androiddeveloper_help.data.QuestionType
 import com.zama.androiddeveloper_help.data.Topic
+import com.zama.androiddeveloper_help.data.content.UserCardsAsQuestions
+import com.zama.androiddeveloper_help.data.domain.UserCard
+import com.zama.androiddeveloper_help.data.domain.UserDeck
 import com.zama.androiddeveloper_help.data.repository.DeckRepository
 import com.zama.androiddeveloper_help.data.repository.ProfileRepository
 import com.zama.androiddeveloper_help.data.repository.ProgressRepository
 import com.zama.androiddeveloper_help.gamification.Gamification
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 
 data class QuizUiState(
     val topicId: String? = null,
+    val deckId: String? = null,
     val questions: List<Question> = emptyList(),
     val currentIndex: Int = 0,
     val selectedOption: Int? = null,
@@ -36,7 +43,8 @@ data class QuizUiState(
 data class HomeUiState(
     val topics: List<Topic> = emptyList(),
     val loading: Boolean = true,
-    val error: String? = null
+    val error: String? = null,
+    val decks: List<UserDeck> = emptyList()
 )
 
 class MainViewModel(
@@ -62,6 +70,11 @@ class MainViewModel(
                 _home.update { HomeUiState(topics = topics, loading = false) }
             } catch (e: Exception) {
                 _home.update { HomeUiState(loading = false, error = e.message) }
+            }
+        }
+        viewModelScope.launch {
+            deckRepository.observeDecks().collect { decks ->
+                _home.update { it.copy(decks = decks) }
             }
         }
     }
@@ -119,10 +132,23 @@ class MainViewModel(
             )
         }
         viewModelScope.launch {
-            if (topicId != null) {
+            if (state.deckId != null) {
+                UserCardsAsQuestions.cardId(question)?.let { cardId ->
+                    deckRepository.recordCardAnswer(cardId, correct, System.currentTimeMillis())
+                }
+            } else if (topicId != null) {
                 progressRepository.recordAnswer(topicId, question.id, correct, System.currentTimeMillis())
             }
             profileRepository.addXp(xp)
+        }
+    }
+
+    fun startUserQuiz(deckId: String) {
+        viewModelScope.launch {
+            _quiz.update { QuizUiState(deckId = deckId, loading = true) }
+            val cards = deckRepository.observeCards(deckId).first()
+            val questions = UserCardsAsQuestions.toQuestions(cards)
+            _quiz.update { it.copy(questions = questions, loading = false, finished = questions.isEmpty()) }
         }
     }
 
@@ -158,8 +184,67 @@ class MainViewModel(
     }
 
     fun restartQuiz() {
-        val topicId = _quiz.value.topicId ?: return
-        startQuiz(topicId)
+        val state = _quiz.value
+        val deckId = state.deckId
+        val topicId = state.topicId
+        when {
+            deckId != null -> startUserQuiz(deckId)
+            topicId != null -> startQuiz(topicId)
+        }
+    }
+
+    fun observeDeck(deckId: String): Flow<UserDeck?> =
+        deckRepository.observeDecks().map { decks -> decks.find { it.id == deckId } }
+
+    fun observeDeckCards(deckId: String): Flow<List<UserCard>> = deckRepository.observeCards(deckId)
+
+    fun createDeck(title: String, description: String, icon: String = "layers") {
+        viewModelScope.launch { deckRepository.createDeck(title, description, icon) }
+    }
+
+    fun renameDeck(deckId: String, title: String, description: String) {
+        viewModelScope.launch {
+            val entity = deckRepository.getDeck(deckId)
+            if (entity != null) {
+                deckRepository.updateDeck(entity.copy(title = title, description = description))
+            }
+        }
+    }
+
+    fun deleteDeck(deckId: String) {
+        viewModelScope.launch { deckRepository.deleteDeck(deckId) }
+    }
+
+    fun saveCard(
+        deckId: String,
+        cardId: String?,
+        front: String,
+        back: String,
+        options: List<String> = emptyList(),
+        correctIndex: Int = -1
+    ) {
+        viewModelScope.launch {
+            val isNew = cardId == null
+            deckRepository.upsertCard(
+                deckId = deckId,
+                cardId = cardId,
+                front = front,
+                back = back,
+                options = options,
+                correctIndex = correctIndex
+            )
+            if (isNew) {
+                profileRepository.addXp(Gamification.XP_PER_CARD_CREATE)
+            }
+        }
+    }
+
+    fun deleteCard(cardId: String) {
+        viewModelScope.launch { deckRepository.deleteCard(cardId) }
+    }
+
+    fun resetDeckProgress(deckId: String) {
+        viewModelScope.launch { deckRepository.resetDeckProgress(deckId) }
     }
 
     fun loadArticle(fileName: String) {

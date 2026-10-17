@@ -10,6 +10,7 @@ import com.zama.androiddeveloper_help.data.domain.toDomain
 import com.zama.androiddeveloper_help.data.repetition.SrsItem
 import com.zama.androiddeveloper_help.data.repetition.SpacedRepetition
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import java.util.UUID
 
@@ -18,9 +19,11 @@ class DeckRepository(
     private val cardDao: UserCardDao
 ) {
 
-    fun observeDecks(): Flow<List<UserDeck>> = deckDao.observeAll().map { decks ->
-        decks.map { it.toDomain() }
-    }
+    fun observeDecks(): Flow<List<UserDeck>> =
+        combine(deckDao.observeAll(), cardDao.observeAll()) { decks, cards ->
+            val counts = cards.groupingBy { it.deckId }.eachCount()
+            decks.map { it.toDomain(counts[it.id] ?: 0) }
+        }
 
     fun observeCards(deckId: String): Flow<List<UserCard>> =
         cardDao.observeByDeck(deckId).map { cards -> cards.map { it.toDomain() } }

@@ -40,6 +40,8 @@ fun HomeScreen(
     loading: Boolean,
     error: String?,
     onTopicClick: (Topic) -> Unit,
+    onDecksClick: () -> Unit,
+    deckCount: Int = 0,
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier.fillMaxSize()) {
@@ -67,15 +69,47 @@ fun HomeScreen(
                     modifier = Modifier.padding(16.dp)
                 )
             }
-            else -> {
-                LazyColumn(
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    items(topics, key = { it.id }) { topic ->
-                        TopicCard(topic = topic, onClick = { onTopicClick(topic) })
-                    }
+            else -> LazyColumn(
+                contentPadding = PaddingValues(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                item {
+                    MyDecksCard(deckCount = deckCount, onClick = onDecksClick)
                 }
+                items(topics, key = { it.id }) { topic ->
+                    TopicCard(topic = topic, onClick = { onTopicClick(topic) })
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun MyDecksCard(deckCount: Int, onClick: () -> Unit) {
+    Card(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(text = "🗂", style = MaterialTheme.typography.headlineSmall)
+            Spacer(modifier = Modifier.width(16.dp))
+            Column {
+                Text(
+                    text = "Мои колоды",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                )
+                Text(
+                    text = if (deckCount > 0) "$deckCount ${if (deckCount == 1) "колода" else "колод"} — свои тесты и карточки"
+                    else "Создай свои тесты и карточки",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                )
             }
         }
     }
