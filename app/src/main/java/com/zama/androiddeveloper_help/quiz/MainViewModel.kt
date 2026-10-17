@@ -6,11 +6,16 @@ import com.zama.androiddeveloper_help.data.ContentRepository
 import com.zama.androiddeveloper_help.data.Question
 import com.zama.androiddeveloper_help.data.QuestionType
 import com.zama.androiddeveloper_help.data.Topic
+import com.zama.androiddeveloper_help.data.repository.DeckRepository
+import com.zama.androiddeveloper_help.data.repository.ProfileRepository
+import com.zama.androiddeveloper_help.data.repository.ProgressRepository
+import com.zama.androiddeveloper_help.gamification.Gamification
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.time.LocalDate
 
 data class QuizUiState(
     val topicId: String? = null,
@@ -22,6 +27,7 @@ data class QuizUiState(
     val lastCorrect: Boolean? = null,
     val revealed: Boolean = false,
     val correctCount: Int = 0,
+    val xpGained: Long = 0,
     val finished: Boolean = false,
     val loading: Boolean = false,
     val error: String? = null
@@ -33,7 +39,12 @@ data class HomeUiState(
     val error: String? = null
 )
 
-class MainViewModel(private val repository: ContentRepository) : ViewModel() {
+class MainViewModel(
+    private val contentRepository: ContentRepository,
+    private val progressRepository: ProgressRepository,
+    private val deckRepository: DeckRepository,
+    private val profileRepository: ProfileRepository
+) : ViewModel() {
 
     private val _home = MutableStateFlow(HomeUiState())
     val home: StateFlow<HomeUiState> = _home.asStateFlow()
@@ -47,7 +58,7 @@ class MainViewModel(private val repository: ContentRepository) : ViewModel() {
     init {
         viewModelScope.launch {
             try {
-                val topics = repository.loadTopics()
+                val topics = contentRepository.loadTopics()
                 _home.update { HomeUiState(topics = topics, loading = false) }
             } catch (e: Exception) {
                 _home.update { HomeUiState(loading = false, error = e.message) }
@@ -59,7 +70,7 @@ class MainViewModel(private val repository: ContentRepository) : ViewModel() {
         viewModelScope.launch {
             _quiz.update { QuizUiState(topicId = topicId, loading = true) }
             try {
-                val questions = repository.loadQuestions(topicId)
+                val questions = contentRepository.loadQuestions(topicId)
                 _quiz.update { it.copy(questions = questions, loading = false, finished = questions.isEmpty()) }
             } catch (e: Exception) {
                 _quiz.update { it.copy(loading = false, error = e.message) }
@@ -76,32 +87,42 @@ class MainViewModel(private val repository: ContentRepository) : ViewModel() {
     }
 
     fun submitAnswer() {
-        _quiz.update { state ->
-            val question = state.questions.getOrNull(state.currentIndex) ?: return@update state
-            val userAnswer = when (question.type) {
-                QuestionType.MCQ, QuestionType.TRUE_FALSE -> state.selectedOption?.toString()
-                QuestionType.INPUT -> state.inputText
-                QuestionType.CARD -> null
-            }
-            when (val result = QuizEngine.check(question, userAnswer)) {
-                is AnswerResult.Reveal -> state.copy(submitted = true, revealed = true)
-                AnswerResult.Correct -> state.copy(
-                    submitted = true,
-                    lastCorrect = true,
-                    correctCount = state.correctCount + 1
-                )
-                AnswerResult.Incorrect -> state.copy(submitted = true, lastCorrect = false)
-            }
+        val state = _quiz.value
+        val question = state.questions.getOrNull(state.currentIndex) ?: return
+        val userAnswer = when (question.type) {
+            QuestionType.MCQ, QuestionType.TRUE_FALSE -> state.selectedOption?.toString()
+            QuestionType.INPUT -> state.inputText
+            QuestionType.CARD -> null
+        }
+        when (val result = QuizEngine.check(question, userAnswer)) {
+            is AnswerResult.Reveal -> _quiz.update { it.copy(submitted = true, revealed = true) }
+            is AnswerResult.Correct -> applyAnswer(correct = true)
+            is AnswerResult.Incorrect -> applyAnswer(correct = false)
         }
     }
 
     fun markSelfAssessed(knewIt: Boolean) {
-        _quiz.update { state ->
-            state.copy(
+        applyAnswer(correct = knewIt)
+    }
+
+    private fun applyAnswer(correct: Boolean) {
+        val state = _quiz.value
+        val question = state.questions.getOrNull(state.currentIndex) ?: return
+        val topicId = state.topicId
+        val xp = if (correct) Gamification.XP_PER_CORRECT else Gamification.XP_PER_INCORRECT
+        _quiz.update {
+            it.copy(
                 submitted = true,
-                lastCorrect = knewIt,
-                correctCount = state.correctCount + if (knewIt) 1 else 0
+                lastCorrect = correct,
+                correctCount = it.correctCount + if (correct) 1 else 0,
+                xpGained = it.xpGained + xp
             )
+        }
+        viewModelScope.launch {
+            if (topicId != null) {
+                progressRepository.recordAnswer(topicId, question.id, correct, System.currentTimeMillis())
+            }
+            profileRepository.addXp(xp)
         }
     }
 
@@ -109,7 +130,7 @@ class MainViewModel(private val repository: ContentRepository) : ViewModel() {
         _quiz.update { state ->
             val next = state.currentIndex + 1
             if (next >= state.questions.size) {
-                state.copy(finished = true)
+                finishSession(state)
             } else {
                 state.copy(
                     currentIndex = next,
@@ -123,6 +144,19 @@ class MainViewModel(private val repository: ContentRepository) : ViewModel() {
         }
     }
 
+    private fun finishSession(state: QuizUiState): QuizUiState {
+        viewModelScope.launch {
+            profileRepository.touchStreak(LocalDate.now())
+            val profile = profileRepository.current()
+            val bonus = Gamification.sessionXp(state.correctCount, state.questions.size, profile.currentStreak)
+            profileRepository.addXp(bonus)
+            if (bonus > 0) {
+                _quiz.update { if (it.finished) it.copy(xpGained = it.xpGained + bonus) else it }
+            }
+        }
+        return state.copy(finished = true)
+    }
+
     fun restartQuiz() {
         val topicId = _quiz.value.topicId ?: return
         startQuiz(topicId)
@@ -132,7 +166,7 @@ class MainViewModel(private val repository: ContentRepository) : ViewModel() {
         viewModelScope.launch {
             _article.update { ArticleUiState(loading = true) }
             try {
-                val text = repository.loadArticle(fileName)
+                val text = contentRepository.loadArticle(fileName)
                 _article.update { ArticleUiState(content = text, loading = false) }
             } catch (e: Exception) {
                 _article.update { ArticleUiState(loading = false, error = e.message) }

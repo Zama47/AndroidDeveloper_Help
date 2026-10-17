@@ -11,6 +11,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -18,7 +19,6 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.zama.androiddeveloper_help.data.ContentRepository
 import com.zama.androiddeveloper_help.quiz.MainViewModel
 import com.zama.androiddeveloper_help.ui.ArticleScreen
 import com.zama.androiddeveloper_help.ui.HomeScreen
@@ -38,10 +38,15 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-class MainViewModelFactory(private val repository: ContentRepository) : ViewModelProvider.Factory {
+class MainViewModelFactory(private val app: App) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         @Suppress("UNCHECKED_CAST")
-        return MainViewModel(repository) as T
+        return MainViewModel(
+            contentRepository = app.contentRepository,
+            progressRepository = app.progressRepository,
+            deckRepository = app.deckRepository,
+            profileRepository = app.profileRepository
+        ) as T
     }
 }
 
@@ -49,7 +54,7 @@ class MainViewModelFactory(private val repository: ContentRepository) : ViewMode
 fun AppNav(
     navController: NavHostController = rememberNavController(),
     viewModel: MainViewModel = viewModel(
-        factory = MainViewModelFactory(ContentRepository(androidx.compose.ui.platform.LocalContext.current))
+        factory = MainViewModelFactory(LocalContext.current.applicationContext as App)
     )
 ) {
     Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->

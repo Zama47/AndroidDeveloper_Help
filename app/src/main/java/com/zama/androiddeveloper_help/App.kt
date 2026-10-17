@@ -2,6 +2,7 @@ package com.zama.androiddeveloper_help
 
 import android.app.Application
 import com.zama.androiddeveloper_help.data.db.AppDatabase
+import com.zama.androiddeveloper_help.data.ContentRepository
 import com.zama.androiddeveloper_help.data.repository.DeckRepository
 import com.zama.androiddeveloper_help.data.repository.ProfileRepository
 import com.zama.androiddeveloper_help.data.repository.ProgressRepository
@@ -17,6 +18,7 @@ class App : Application() {
         private set
     lateinit var profileRepository: ProfileRepository
         private set
+    val contentRepository: ContentRepository by lazy { ContentRepository(this) }
 
     override fun onCreate() {
         super.onCreate()
