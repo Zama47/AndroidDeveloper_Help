@@ -25,6 +25,7 @@ import com.zama.androiddeveloper_help.ui.DeckEditorScreen
 import com.zama.androiddeveloper_help.ui.DecksScreen
 import com.zama.androiddeveloper_help.ui.HomeScreen
 import com.zama.androiddeveloper_help.ui.ProfileScreen
+import com.zama.androiddeveloper_help.ui.ReviewScreen
 import com.zama.androiddeveloper_help.ui.QuizScreen
 import com.zama.androiddeveloper_help.ui.TopicScreen
 import com.zama.androiddeveloper_help.ui.theme.AndroidDeveloper_HelpTheme
@@ -68,6 +69,7 @@ fun AppNav(
         ) {
             composable("home") {
                 val home by viewModel.home.collectAsState()
+                val dueCount by viewModel.dueCount.collectAsState()
                 HomeScreen(
                     topics = home.topics,
                     loading = home.loading,
@@ -79,7 +81,9 @@ fun AppNav(
                     },
                     onDecksClick = { navController.navigate("decks") },
                     deckCount = home.decks.size,
-                    onProfileClick = { navController.navigate("profile") }
+                    onProfileClick = { navController.navigate("profile") },
+                    dueCount = dueCount,
+                    onReviewClick = { navController.navigate("review") }
                 )
             }
             composable("profile") {
@@ -128,6 +132,12 @@ fun AppNav(
                 QuizScreen(
                     viewModel = viewModel,
                     onBack = { navController.popBackStack("decks", false) }
+                )
+            }
+            composable("review") {
+                ReviewScreen(
+                    viewModel = viewModel,
+                    onBack = { viewModel.exitReview(); navController.popBackStack() }
                 )
             }
             composable("topic/{topicId}") { entry ->

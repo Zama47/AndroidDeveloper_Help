@@ -48,6 +48,9 @@ class ProgressRepository(private val dao: QuestionProgressDao) {
 
     suspend fun dueQuestions(nowMillis: Long): List<QuestionProgressEntity> = dao.due(nowMillis)
 
+    suspend fun dueCount(nowMillis: Long = System.currentTimeMillis()): Int =
+        dao.dueCount(nowMillis)
+
     fun observeDueCount(nowMillis: Long = System.currentTimeMillis()): Flow<Int> =
         dao.observeDueCount(nowMillis)
 }

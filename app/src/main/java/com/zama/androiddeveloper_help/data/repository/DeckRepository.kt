@@ -108,5 +108,8 @@ class DeckRepository(
 
     suspend fun dueCards(nowMillis: Long): List<UserCardEntity> = cardDao.due(nowMillis)
 
+    suspend fun dueCount(nowMillis: Long = System.currentTimeMillis()): Int =
+        cardDao.dueCount(nowMillis)
+
     suspend fun resetDeckProgress(deckId: String) = cardDao.resetProgress(deckId)
 }

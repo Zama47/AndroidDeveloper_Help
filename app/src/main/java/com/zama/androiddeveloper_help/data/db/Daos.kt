@@ -23,6 +23,9 @@ interface QuestionProgressDao {
     @Query("SELECT COUNT(*) FROM question_progress WHERE dueAtMillis <= :now AND streak > 0")
     fun observeDueCount(now: Long): Flow<Int>
 
+    @Query("SELECT COUNT(*) FROM question_progress WHERE dueAtMillis <= :now AND streak > 0")
+    suspend fun dueCount(now: Long): Int
+
     @Query("SELECT * FROM question_progress WHERE topicId = :topicId")
     suspend fun byTopic(topicId: String): List<QuestionProgressEntity>
 
@@ -69,6 +72,9 @@ interface UserCardDao {
 
     @Query("SELECT COUNT(*) FROM user_cards WHERE dueAtMillis <= :now")
     fun observeDueCount(now: Long): Flow<Int>
+
+    @Query("SELECT COUNT(*) FROM user_cards WHERE dueAtMillis <= :now")
+    suspend fun dueCount(now: Long): Int
 
     @Upsert
     suspend fun upsert(card: UserCardEntity)

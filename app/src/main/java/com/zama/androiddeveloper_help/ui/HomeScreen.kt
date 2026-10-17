@@ -44,6 +44,8 @@ fun HomeScreen(
     onDecksClick: () -> Unit,
     deckCount: Int = 0,
     onProfileClick: () -> Unit = {},
+    dueCount: Int = 0,
+    onReviewClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier.fillMaxSize()) {
@@ -89,12 +91,42 @@ fun HomeScreen(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 item {
+                    ReviewCard(dueCount = dueCount, onClick = onReviewClick)
+                }
+                item {
                     MyDecksCard(deckCount = deckCount, onClick = onDecksClick)
                 }
                 items(topics, key = { it.id }) { topic ->
                     TopicCard(topic = topic, onClick = { onTopicClick(topic) })
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun ReviewCard(dueCount: Int, onClick: () -> Unit) {
+    Card(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = if (dueCount > 0) MaterialTheme.colorScheme.tertiaryContainer
+            else MaterialTheme.colorScheme.surfaceContainerHigh
+        )
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(text = "🔁", style = MaterialTheme.typography.headlineSmall)
+            Spacer(modifier = Modifier.width(16.dp))
+            Text(
+                text = if (dueCount > 0) "Повторение: $dueCount на сегодня"
+                else "Повторение — всё по расписанию",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
         }
     }
 }

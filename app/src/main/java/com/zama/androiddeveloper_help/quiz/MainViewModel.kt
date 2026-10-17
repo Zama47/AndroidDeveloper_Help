@@ -6,6 +6,7 @@ import com.zama.androiddeveloper_help.data.ContentRepository
 import com.zama.androiddeveloper_help.data.Question
 import com.zama.androiddeveloper_help.data.QuestionType
 import com.zama.androiddeveloper_help.data.Topic
+import com.zama.androiddeveloper_help.data.domain.toDomain
 import com.zama.androiddeveloper_help.data.content.UserCardsAsQuestions
 import com.zama.androiddeveloper_help.data.domain.UserCard
 import com.zama.androiddeveloper_help.data.domain.UserDeck
@@ -38,6 +39,9 @@ data class ProfileUiState(
 data class QuizUiState(
     val topicId: String? = null,
     val deckId: String? = null,
+    val isReview: Boolean = false,
+    /** questionId → topicId (для повторения вопросов встроенных тем). */
+    val reviewTopicIds: Map<String, String> = emptyMap(),
     val questions: List<Question> = emptyList(),
     val currentIndex: Int = 0,
     val selectedOption: Int? = null,
@@ -48,6 +52,7 @@ data class QuizUiState(
     val correctCount: Int = 0,
     val xpGained: Long = 0,
     val finished: Boolean = false,
+    val loaded: Boolean = false,
     val loading: Boolean = false,
     val error: String? = null
 )
@@ -78,6 +83,13 @@ class MainViewModel(
     private val _profile = MutableStateFlow(ProfileUiState())
     val profile: StateFlow<ProfileUiState> = _profile.asStateFlow()
 
+    private val _dueCount = MutableStateFlow(0)
+    val dueCount: StateFlow<Int> = _dueCount.asStateFlow()
+
+    init {
+        refreshDueCount()
+    }
+
     init {
         viewModelScope.launch {
             try {
@@ -106,7 +118,14 @@ class MainViewModel(
             _quiz.update { QuizUiState(topicId = topicId, loading = true) }
             try {
                 val questions = contentRepository.loadQuestions(topicId)
-                _quiz.update { it.copy(questions = questions, loading = false, finished = questions.isEmpty()) }
+                _quiz.update {
+                    it.copy(
+                        questions = questions,
+                        loading = false,
+                        loaded = true,
+                        finished = questions.isEmpty()
+                    )
+                }
             } catch (e: Exception) {
                 _quiz.update { it.copy(loading = false, error = e.message) }
             }
@@ -154,7 +173,14 @@ class MainViewModel(
             )
         }
         viewModelScope.launch {
-            if (state.deckId != null) {
+            if (state.isReview) {
+                state.reviewTopicIds[question.id]?.let { topicId ->
+                    progressRepository.recordAnswer(topicId, question.id, correct, System.currentTimeMillis())
+                }
+                UserCardsAsQuestions.cardId(question)?.let { cardId ->
+                    deckRepository.recordCardAnswer(cardId, correct, System.currentTimeMillis())
+                }
+            } else if (state.deckId != null) {
                 UserCardsAsQuestions.cardId(question)?.let { cardId ->
                     deckRepository.recordCardAnswer(cardId, correct, System.currentTimeMillis())
                 }
@@ -171,7 +197,61 @@ class MainViewModel(
             _quiz.update { QuizUiState(deckId = deckId, loading = true) }
             val cards = deckRepository.observeCards(deckId).first()
             val questions = UserCardsAsQuestions.toQuestions(cards)
-            _quiz.update { it.copy(questions = questions, loading = false, finished = questions.isEmpty()) }
+            _quiz.update {
+                it.copy(
+                    questions = questions,
+                    loading = false,
+                    loaded = true,
+                    finished = questions.isEmpty()
+                )
+            }
+        }
+    }
+
+    fun startReview() {
+        viewModelScope.launch {
+            _quiz.update { QuizUiState(isReview = true, loading = true) }
+            val now = System.currentTimeMillis()
+            val dueProgress = progressRepository.dueQuestions(now)
+            val topicQuestionsById = mutableMapOf<String, Map<String, Question>>()
+            for (topicId in dueProgress.map { it.topicId }.distinct()) {
+                topicQuestionsById[topicId] =
+                    contentRepository.loadQuestions(topicId).associateBy { it.id }
+            }
+            val reviewTopics = mutableMapOf<String, String>()
+            val questions = mutableListOf<Question>()
+            dueProgress.forEach { progress ->
+                val question = topicQuestionsById[progress.topicId]?.get(progress.questionId)
+                    ?: return@forEach
+                reviewTopics[progress.questionId] = progress.topicId
+                questions.add(question)
+            }
+            val dueCards = deckRepository.dueCards(now)
+            questions.addAll(
+                dueCards.map { card -> UserCardsAsQuestions.toQuestion(card.toDomain()) }
+            )
+            val reordered = questions.shuffled()
+            _quiz.update {
+                it.copy(
+                    questions = reordered,
+                    loading = false,
+                    loaded = true,
+                    finished = reordered.isEmpty(),
+                    reviewTopicIds = reviewTopics
+                )
+            }
+            refreshDueCount()
+        }
+    }
+
+    fun exitReview() {
+        _quiz.update { QuizUiState() }
+    }
+
+    fun refreshDueCount() {
+        viewModelScope.launch {
+            val now = System.currentTimeMillis()
+            _dueCount.value = progressRepository.dueCount(now) + deckRepository.dueCount(now)
         }
     }
 
@@ -208,17 +288,17 @@ class MainViewModel(
                 _quiz.update { if (it.finished) it.copy(xpGained = it.xpGained + bonus) else it }
             }
             checkAchievements()
+            refreshDueCount()
         }
         return state.copy(finished = true)
     }
 
     fun restartQuiz() {
         val state = _quiz.value
-        val deckId = state.deckId
-        val topicId = state.topicId
         when {
-            deckId != null -> startUserQuiz(deckId)
-            topicId != null -> startQuiz(topicId)
+            state.isReview -> startReview()
+            state.deckId != null -> startUserQuiz(state.deckId)
+            state.topicId != null -> startQuiz(state.topicId)
         }
     }
 
