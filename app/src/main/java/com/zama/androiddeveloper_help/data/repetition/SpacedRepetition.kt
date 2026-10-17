@@ -18,9 +18,9 @@ object SpacedRepetition {
 
     /** Базовая лестница интервалов в днях: 1 → 2 → 6 → рост по ease factor. */
     private fun nextInterval(streak: Int, interval: Int, ease: Double): Int = when (streak) {
-        0 -> 1
-        1 -> 2
-        2 -> 6
+        1 -> 1
+        2 -> 2
+        3 -> 6
         else -> ((interval * ease).toInt()).coerceIn(8, 120)
     }
 
