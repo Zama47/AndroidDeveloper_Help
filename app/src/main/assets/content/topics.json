@@ -1,0 +1,95 @@
+{
+  "version": 1,
+  "topics": [
+    {
+      "id": "kotlin",
+      "parentId": null,
+      "title": "Kotlin",
+      "description": "Синтаксис, типы, ООП, функции высшего порядка, generics, null-safety. Фундамент всех собеседований Android-разработчика.",
+      "level": 1,
+      "orderIndex": 1,
+      "icon": "code"
+    },
+    {
+      "id": "coroutines",
+      "parentId": null,
+      "title": "Coroutines и Flow",
+      "description": "Структурированная конкурентность, scope, dispatchers, отмена, Flow, StateFlow/SharedFlow, холодные и горячие потоки.",
+      "level": 2,
+      "orderIndex": 2,
+      "icon": "sync"
+    },
+    {
+      "id": "compose",
+      "parentId": null,
+      "title": "Jetpack Compose",
+      "description": "Декларативный UI: recomposition, state, эффекты, производительность, Material 3, навигация и анимации.",
+      "level": 2,
+      "orderIndex": 3,
+      "icon": "brush"
+    },
+    {
+      "id": "architecture",
+      "parentId": null,
+      "title": "Архитектура",
+      "description": "MVVM, MVI, Clean Architecture, однонаправленный поток данных, слои, Repository, use cases, жизненный цикл.",
+      "level": 2,
+      "orderIndex": 4,
+      "icon": "layers"
+    },
+    {
+      "id": "room",
+      "parentId": null,
+      "title": "Room и хранилища",
+      "description": "SQLite поверх Room: DAO, миграции, Flow-запросы, TypeConverter, DataStore, кэширование и офлайн-first.",
+      "level": 2,
+      "orderIndex": 5,
+      "icon": "storage"
+    },
+    {
+      "id": "hilt",
+      "parentId": null,
+      "title": "DI: Hilt",
+      "description": "Внедрение зависимостей: компоненты, скоупы, модули, @Binds vs @Provides, тестирование с заменой зависимостей.",
+      "level": 2,
+      "orderIndex": 6,
+      "icon": "build"
+    },
+    {
+      "id": "android_core",
+      "parentId": null,
+      "title": "Android Core",
+      "description": "Жизненный цикл Activity/Fragment, process death, конфигурации, Context, Intents, разрешения, Service, WorkManager.",
+      "level": 1,
+      "orderIndex": 7,
+      "icon": "phone_android"
+    },
+    {
+      "id": "performance",
+      "parentId": null,
+      "title": "Производительность",
+      "description": "Jank, главный поток, память и утечки, Baseline Profiles, замер времени выполнения, деградации батареи.",
+      "level": 3,
+      "orderIndex": 8,
+      "icon": "speed"
+    },
+    {
+      "id": "testing",
+      "parentId": null,
+      "title": "Тестирование",
+      "description": "JUnit, unit-тесты ViewModel/UseCase, TDD, instrumented-тесты, Compose Testing, моки, тест двойники.",
+      "level": 2,
+      "orderIndex": 9,
+      "icon": "fact_check"
+    },
+    {
+      "id": "system_design",
+      "parentId": null,
+      "title": "System Design",
+      "description": "Проектирование приложений и бэкендов: REST, пагинация, офлайн-синхронизация, кэширование, масштабирование.",
+      "level": 3,
+      "orderIndex": 10,
+      "icon": "account_tree"
+    }
+  ]
+}

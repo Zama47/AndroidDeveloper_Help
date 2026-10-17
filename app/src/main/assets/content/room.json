@@ -1,0 +1,478 @@
+{
+  "version": 1,
+  "topic": "room",
+  "questions": [
+    {
+      "id": "room_001",
+      "type": "MCQ",
+      "level": 1,
+      "text": "Что такое Room?",
+      "options": [
+        "Абстракция над SQLite: аннотации-компилятор генерирует типизированный код доступа с проверкой SQL на этапе сборки",
+        "NoSQL база данных",
+        "Облачное хранилище",
+        "Замена SharedPreferences"
+      ],
+      "correctAnswer": "0",
+      "explanation": "Room = SQLite + compile-time проверки. Кompiler проверяет SQL-запросы в @Query, генерирует реализации DAO, даёт Flow/LiveData-обёртки. Преимущества: типизация, миграции, интеграция с Coroutines — без ручного Cursor-кода.",
+      "tags": ["basics"],
+      "difficulty": 0.15
+    },
+    {
+      "id": "room_002",
+      "type": "MCQ",
+      "level": 1,
+      "text": "Из каких основных частей состоит Room?",
+      "options": [
+        "Entity, DAO, Database",
+        "Activity, Fragment, ViewModel",
+        "Retrofit, OkHttp, Gson",
+        "View, Model, Presenter"
+      ],
+      "correctAnswer": "0",
+      "explanation": "Entity — таблица (@Entity), DAO — доступ (@Dao с @Query/@Insert/@Update/@Delete), Database — абстракция базы (@Database: список entity, версия, экземпляр). Дополнительно: TypeConverter (не-стандартные типы), @Relation/@Embedded (связи).",
+      "tags": ["basics", "entity", "dao"],
+      "difficulty": 0.2
+    },
+    {
+      "id": "room_003",
+      "type": "MCQ",
+      "level": 1,
+      "text": "Какой аннотацией помечается класс-таблица в Room?",
+      "options": ["@Entity", "@Table", "@Database", "@Dao"],
+      "correctAnswer": "0",
+      "explanation": "@Entity(tableName = \"questions\") — класс становится таблицей; первичный ключ — @PrimaryKey; колонки — свойства (имена можно менять @ColumnInfo); индексы — @Index; уникальность — @PrimaryKey(autoGenerate) или @Entity(indices).",
+      "tags": ["entity"],
+      "difficulty": 0.15
+    },
+    {
+      "id": "room_004",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Что делает @PrimaryKey(autoGenerate = true)?",
+      "options": [
+        "Ключ всегда 0",
+        "SQLite AUTOINCREMENT-подобное поведение: при вставке 0/NULL Room генерирует новый уникальный id",
+        "Удаляет дубликаты",
+        "Создаёт индекс"
+      ],
+      "correctAnswer": "1",
+      "explanation": "Типичный паттерн: @PrimaryKey(autoGenerate = true) val id: Long = 0. При insert с id=0 SQLite подставит max(id)+1. Для стабильных бизнес-идентификаторов (например, id из JSON) используют строковый @PrimaryKey без автогенерации и OnConflictStrategy.REPLACE.",
+      "tags": ["entity", "keys"],
+      "difficulty": 0.4
+    },
+    {
+      "id": "room_005",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Зачем нужен @ColumnInfo(name = \"...\")?",
+      "options": [
+        "Переименовывает колонку в таблице, не меняя имя свойства Kotlin (или задаёт имя колонки явно)",
+        "Добавляет комментарий в SQL",
+        "Индексирует колонку",
+        "Шифрует данные"
+      ],
+      "correctAnswer": "0",
+      "explanation": "Колонка по умолчанию наследует имя свойства. @ColumnInfo(name = \"question_text\") позволяет использовать в SQL другое имя, мигрировать схему или соответствовать legacy-базе. Также полезен defaultValue для значений по умолчанию.",
+      "tags": ["entity"],
+      "difficulty": 0.35
+    },
+    {
+      "id": "room_006",
+      "type": "MCQ",
+      "level": 1,
+      "text": "Какие аннотации бывают в DAO-интерфейсе?",
+      "options": [
+        "@Query, @Insert, @Update, @Delete (+ @Upsert, @Transaction)",
+        "@GET, @POST, @PUT",
+        "@Composable, @Preview",
+        "@Inject, @Module"
+      ],
+      "correctAnswer": "0",
+      "explanation": "DAO — интерфейс или абстрактный класс с методами доступа. @Query — SQL (единственный способ выборки); @Insert/@Update/@Delete — по entity-объекту; @Upsert — вставка-или-обновление (Room 2.5+); @Transaction — атомарная обёртка; @RawQuery — динамический SQL.",
+      "tags": ["dao"],
+      "difficulty": 0.2
+    },
+    {
+      "id": "room_007",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Можно ли в @Query выполнять JOIN нескольких таблиц?",
+      "options": [
+        "Нет, Room поддерживает только одну таблицу",
+        "Да — обычный SQL JOIN; результат маппится в отдельный POJO-класс с конструктором под колонки",
+        "Только через Cursor",
+        "Только в @RawQuery"
+      ],
+      "correctAnswer": "1",
+      "explanation": "@Query(\"SELECT q.*, t.title FROM questions q JOIN topics t ON q.topicId = t.id\") fun observeWithTopics(): Flow<List<QuestionWithTopic>>. Room проверит SQL на этапе сборки и сгенерирует маппинг по именам полей POJO. Это основной способ работы со связями в табличном виде.",
+      "tags": ["dao", "sql"],
+      "difficulty": 0.5
+    },
+    {
+      "id": "room_008",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Что вернёт DAO-метод с типом Flow<List<Question>>?",
+      "options": [
+        "Обычный список один раз",
+        "Поток, автоматически перезапускающий запрос при ЛЮБОМ изменении затронутых таблиц и эмитящий актуальные данные (наблюдаемые запросы)",
+        "LiveData",
+        "Список из кэша"
+      ],
+      "correctAnswer": "1",
+      "explanation": "Room отслеживает invalidated-таблицы: insert/update/delete по связанным таблицам → повторный прогон @Query → новый эмит в Flow. Это реактивная основа offline-first: UI просто собирает Flow и всегда видит актуальное состояние. Поддерживается Flow, LiveData и suspend.",
+      "tags": ["dao", "flow"],
+      "difficulty": 0.4
+    },
+    {
+      "id": "room_009",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Что делает @Transaction в DAO?",
+      "options": [
+        "Откатывает базу при ошибке приложения",
+        "Объединяет несколько операций в одну транзакцию SQLite: либо всё применилось, либо ничего (атомарность)",
+        "Блокирует базу навсегда",
+        "Включает WAL"
+      ],
+      "correctAnswer": "1",
+      "explanation": "@Transaction на suspend-методе оборачивает тело в beginTransaction/setTransactionSuccessful/endTransaction. Используется для нескольких вставок (когда частичная запись недопустима) и для @Relation-объединений. При исключении — полный откат.",
+      "tags": ["dao", "transactions"],
+      "difficulty": 0.5
+    },
+    {
+      "id": "room_010",
+      "type": "MCQ",
+      "level": 3,
+      "text": "Зачем в DAO бывают suspend-функции?",
+      "options": [
+        "Для Flow",
+        "Чтобы вызов не блокировал поток: Room выполняет запрос на диспетчере пула (Dispatchers.IO внутри), поток главного не занят",
+        "Для асинхронных триггеров",
+        "Это декоратор для тестов"
+      ],
+      "correctAnswer": "1",
+      "explanation": "suspend fun insert(q: Question) — Room сам диспатчит на рабочий поток (Behavior of dispatchers: query выполняется вне главного). Для Flow-запросов диспетчер берётся из контекста collect. Так главный поток свободен, а вызывающий код не блокируется.",
+      "tags": ["dao", "coroutines"],
+      "difficulty": 0.55
+    },
+    {
+      "id": "room_011",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Что такое миграция (Migration) в Room?",
+      "options": [
+        "Перенос данных на другой телефон",
+        "Сценарий изменения схемы (ALTER TABLE и т.п.) между версиями базы без потери пользовательских данных",
+        "Очистка базы",
+        "Экспорт в файл"
+      ],
+      "correctAnswer": "1",
+      "explanation": "version = 2, addMigrations(MIGRATION_1_2). Миграция — объект с SQL «старая → новая». Без неё (и без fallbackToDestructiveMigration) приложение падает IllegalStateException — данные не теряются молча. Проверка схемы: exportSchema + тест миграции MigrationTestHelper.",
+      "tags": ["migrations", "database"],
+      "difficulty": 0.45
+    },
+    {
+      "id": "room_012",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Что произойдёт, если увеличить version базы, но не предоставить Migration?",
+      "options": [
+        "Room молча удалит таблицы",
+        "Крэш при первом открытии: IllegalStateException (can't downgrade / missing migration), если явно не включён fallbackToDestructiveMigration",
+        "База обновится автоматически",
+        "Ничего"
+      ],
+      "correctAnswer": "1",
+      "explanation": "По умолчанию Room защищает данные: несоответствие схемы → исключение. fallbackToDestructiveMigration() — осознанный компромисс (для некритичных кэшей/беты): при отсутствии пути миграции все таблицы удаляются. В проде предпочтительны явные Migration + тест.",
+      "tags": ["migrations", "database"],
+      "difficulty": 0.5
+    },
+    {
+      "id": "room_013",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Как хранить объект типа List<String> или Date в колонке Room?",
+      "options": [
+        "Room поддерживает их из коробки",
+        "Через @TypeConverter: функции конвертации в примитив/String (например, в JSON через kotlinx.serialization) и обратно, зарегистрированные в @Database(typeConverters = [...])",
+        "Только через BLOB вручную",
+        "Нельзя хранить"
+      ],
+      "correctAnswer": "1",
+      "explanation": "@TypeConverters(Converters::class) в @Database; внутри: @TypeConverter fun fromList(v: List<String>): String = json.encodeToString(v) и обратно. Так в колонке лежит String/Long, а в entity — привычный Kotlin-тип. Удобно для enum, дат (timestamp), списков тегов.",
+      "tags": ["type-converters"],
+      "difficulty": 0.5
+    },
+    {
+      "id": "room_014",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Как описать связь «одна тема — много вопросов» в Room?",
+      "options": [
+        "Только JOIN вручную",
+        "@Relation с вложенным списком: класс-обёртка TopicWithQuestions(@Embedded topic, @Relation(parentColumn=\"id\", entityColumn=\"topicId\") val questions: List<Question>)",
+        "Через ForeignKey только без запроса",
+        "Room не поддерживает связи"
+      ],
+      "correctAnswer": "1",
+      "explanation": "@Relation выполняет два запроса (лениво или через @Transaction) и склеивает в объект. ForeignKey в @Entity обеспечивает целостность (ON DELETE CASCADE). Для производительных выборок — явный JOIN с POJO; @Relation удобнее для чтения объектной иерархии.",
+      "tags": ["relations"],
+      "difficulty": 0.6
+    },
+    {
+      "id": "room_015",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Что такое DAO как метод с @Query без SQL, а через сырой строковый запрос?",
+      "options": [
+        "Это @RawQuery — принимает SupportSQLiteQuery динамически (пагинация, фильтры, построение WHERE в рантайме)",
+        "Room не поддерживает динамический SQL",
+        "Только через Cursor",
+        "Это всегда ошибка"
+      ],
+      "correctAnswer": "0",
+      "explanation": "@RawQuery fun query(q: SupportSQLiteQuery): List<Row> — для случаев, когда SQL строится в рантайме (сложные фильтры, сортировки). Основной путь — @Query со статичным SQL + аргументами (:id, %search%), который проверяется компилятором.",
+      "tags": ["dao", "sql"],
+      "difficulty": 0.65
+    },
+    {
+      "id": "room_016",
+      "type": "MCQ",
+      "level": 3,
+      "text": "Как реализовать постраничную загрузку в Room?",
+      "options": [
+        "LIMIT :limit OFFSET :offset в @Query",
+        "Только через Flow",
+        "Room не поддерживает пагинацию",
+        "Через Cursor вручную"
+      ],
+      "correctAnswer": "0",
+      "explanation": "Классика: SELECT * FROM questions ORDER BY id LIMIT :limit OFFSET :offset. Современный путь — androidx.paging: PagingSource<Int, Question> в DAO + pagingSource() в Repository → LazyPagingItems в Compose. Room имеет встроенную интеграцию с Paging 3.",
+      "tags": ["pagination", "dao"],
+      "difficulty": 0.6
+    },
+    {
+      "id": "room_017",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Как получить экземпляр базы Room в приложении (без DI)?",
+      "options": [
+        "Room.databaseBuilder(context, AppDatabase::class.java, \"app.db\").build() — singleton, лениво создаётся",
+        "new AppDatabase()",
+        "Через static-метод entity",
+        "Создавать в каждом экране"
+      ],
+      "correctAnswer": "0",
+      "explanation": "databaseBuilder (файл-база) или Room.inMemoryDatabaseBuilder (для тестов, данные исчезают). Экземпляр — один на процесс; в проектах с DI он предоставляется через @Provides @Singleton. Создание в каждом экране приведёт к конфликтам и утечкам.",
+      "tags": ["database", "setup"],
+      "difficulty": 0.35
+    },
+    {
+      "id": "room_018",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Что делает allowMainThreadQueries()?",
+      "options": [
+        "Разрешает запросы в главном потоке",
+        "Ускоряет базу",
+        "Отключает транзакции",
+        "Включает логи SQL"
+      ],
+      "correctAnswer": "0",
+      "explanation": "Room по умолчанию ЗАПРЕЩАЕТ запросы на главном потоке (исключение), чтобы предотвратить ANR. allowMainThreadQueries() — обход для дебага/легаси; в проде недопустим: используйте suspend, Flow, отдельные диспетчеры.",
+      "tags": ["performance", "threads"],
+      "difficulty": 0.4
+    },
+    {
+      "id": "room_019",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Что такое prepopulate (заполнение базы при первом старте)?",
+      "options": [
+        "Автоматическая загрузка из интернета",
+        "Копирование готовой .db из assets/ или вставка JSON-контента при onCreate — стартовые данные без сети",
+        "Сидинг через Firebase",
+        "Удаление старых данных"
+      ],
+      "correctAnswer": "1",
+      "explanation": "Три классических способа: 1) createFromAsset(\"db/content.db\") — готовый файл в assets; 2) RoomDatabase.Callback.onCreate + CoroutineScope(Dispatchers.IO) и вставка из JSON; 3) штатные сидеры для тестов. Для нашего приложения — JSON из assets с проверкой версии контента.",
+      "tags": ["seed", "database"],
+      "difficulty": 0.5
+    },
+    {
+      "id": "room_020",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Какие индексы нужны для частых WHERE/JOIN?",
+      "options": [
+        "Никакие — SQLite быстр и без них",
+        "@Index на колонках, участвующих в WHERE/JOIN/ORDER BY, — ускоряет поиск, особенно на больших таблицах",
+        "Только на первичном ключе",
+        "Индексы добавляют только в бэкенде"
+      ],
+      "correctAnswer": "1",
+      "explanation": "@Entity(indices = [Index(\"topicId\"), Index(value = [\"topicId\",\"level\"], unique = false)]). SELECT по неиндексированной колонке — полный скан таблицы. Каждый индекс замедляет вставку (поддержание B-дерева), поэтому индексируем то, что реально фильтруется.",
+      "tags": ["indexes", "performance"],
+      "difficulty": 0.6
+    },
+    {
+      "id": "room_021",
+      "type": "MCQ",
+      "level": 3,
+      "text": "Что такое exportSchema и зачем он нужен?",
+      "options": [
+        "Экспорт данных в CSV",
+        "Выгрузка JSON-схемы базы (schemaLocation) для проверки совместимости миграций и тестов MigrationTestHelper",
+        "Публикация базы в облако",
+        "Создание бэкапа"
+      ],
+      "correctAnswer": "1",
+      "explanation": "room.schemaLocation указывает, куда компилятор пишет schema JSON по версиям. Эти файлы коммитятся в репозиторий: тест проверяет, что миграция N→N+1 действительно даёт ожидаемую схему. Без exported schemas миграции невозможно автоматизированно тестировать.",
+      "tags": ["migrations", "testing"],
+      "difficulty": 0.7
+    },
+    {
+      "id": "room_022",
+      "type": "MCQ",
+      "level": 1,
+      "text": "В каком потоке выполнять запросы Room через suspend?",
+      "options": [
+        "Только в главном",
+        "Room сама переключит на рабочий поток — вызывать можно из любой корутины",
+        "Всегда вручную Dispatchers.IO",
+        "В отдельном Thread"
+      ],
+      "correctAnswer": "1",
+      "explanation": "suspend-функции Room диспатчатся автоматически. withContext(Dispatchers.IO) вокруг suspend-вызова Room избыточен (но не вреден). Для нативных (не suspend) вызовов — диспетчер вручную.",
+      "tags": ["coroutines", "dao"],
+      "difficulty": 0.3
+    },
+    {
+      "id": "room_023",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Как вставить 1000 записей эффективно?",
+      "options": [
+        "1000 отдельных insert-вызовов без транзакции",
+        "@Insert, принимающий List<Entity}, внутри @Transaction-метода — одна транзакция вместо тысячи, что радикально повышает производительность",
+        "Через цикл с flush",
+        "INSERT в цикле while"
+      ],
+      "correctAnswer": "1",
+      "explanation": "Пакетная вставка в одной транзакции ускоряет записи в десятки раз (одна fsync вместо тысячи). @Insert suspend fun insertAll(list: List<Q>) + обёртка @Transaction при нескольких вызовах. Ещё: workManager вместо главного потока для долгих задач.",
+      "tags": ["performance", "transactions"],
+      "difficulty": 0.5
+    },
+    {
+      "id": "room_024",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Что такое WAL (Write-Ahead Logging) в контексте SQLite?",
+      "options": [
+        "Шифрование базы",
+        "Режим, где запись идёт в журнал до коммита: чтение не блокируется записью — параллельная работа UI и фоновой синхронизации",
+        "Сжатие данных",
+        "Резервное копирование"
+      ],
+      "correctAnswer": "1",
+      "explanation": "WAL по умолчанию включён в Room: читатели и писатель работают одновременно (в отличие от rollback journal). Практическое следствие: фоновая синхронизация не дёргает чтение UI. Настройка: setJournalMode(WRITE_AHEAD_LOGGING).",
+      "tags": ["performance", "database"],
+      "difficulty": 0.7
+    },
+    {
+      "id": "room_025",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Как лучше хранить связь многие-ко-многим (вопрос ↔ теги)?",
+      "options": [
+        "Список тегов строкой в questions (JSON)",
+        "Промежуточная таблица @Entity QuestionTagCrossRef(@PrimaryKey(questionId, tagId)) с @Relation через промежуточную сущность",
+        "Отдельная база",
+        "Только JOIN вручную"
+      ],
+      "correctAnswer": "1",
+      "explanation": "Нормализация M:N: две таблицы + cross-ref с составным ключом. Плюсы: целостность, индексация, JOIN-фильтры (вопросы по тегу). Альтернатива «JSON-массив в колонке» проще, но теряет SQL-фильтрацию — допустима только для редких read-only тегов.",
+      "tags": ["relations", "normalization"],
+      "difficulty": 0.6
+    },
+    {
+      "id": "room_026",
+      "type": "TRUE_FALSE",
+      "level": 1,
+      "text": "Room — это надстройка над SQLite, а не отдельная СУБД.",
+      "options": ["Верно", "Неверно"],
+      "correctAnswer": "0",
+      "explanation": "Room использует тот же движок SQLite, что и нативный Android, добавляя аннотационную обработку, типизированные DAO, миграции и реактивные Flow. Под капотом — обычные .db-файлы, к которым можно подключиться sqlite3.",
+      "tags": ["basics"],
+      "difficulty": 0.2
+    },
+    {
+      "id": "room_027",
+      "type": "TRUE_FALSE",
+      "level": 2,
+      "text": "Запрос в @Query проверяется компилятором Room: опечатка в имени колонки — ошибка сборки, а не рантайм-краш.",
+      "options": ["Верно", "Неверно"],
+      "correctAnswer": "0",
+      "explanation": "Главное преимущество Room: annotation processor сверяет SQL с схемой entity. Опечатка (SELECT titel) — ошибка компиляции. Это убивает целый класс рантайм-багов, характерных для сырых Cursor-запросов.",
+      "tags": ["dao", "compile-time"],
+      "difficulty": 0.35
+    },
+    {
+      "id": "room_028",
+      "type": "TRUE_FALSE",
+      "level": 3,
+      "text": "Откат данных при failed миграции возможен только через fallbackToDestructiveMigration (удаление).",
+      "options": ["Верно", "Неверно"],
+      "correctAnswer": "0",
+      "explanation": "Room не умеет автоматический откат: при отсутствии пути миграции она падает или (с fallback) удаляет данные. Поэтому миграции пишутся аккуратно и тестируются MigrationTestHelper; для ценных данных — резервные копии на своей стороне.",
+      "tags": ["migrations"],
+      "difficulty": 0.65
+    },
+    {
+      "id": "room_029",
+      "type": "INPUT",
+      "level": 1,
+      "text": "Аннотация метода DAO для SQL-выборки. Введите её (с символом @).",
+      "options": null,
+      "correctAnswer": "@Query",
+      "explanation": "@Query(\"SELECT * FROM questions WHERE topicId = :topicId\") — единственный способ выборки; поддерживает :аргументы, LIKE, ORDER BY, JOIN, Flow/suspend/List-типы возвращаемого значения.",
+      "tags": ["dao"],
+      "difficulty": 0.1
+    },
+    {
+      "id": "room_030",
+      "type": "INPUT",
+      "level": 2,
+      "text": "Как называется компонент Room, описывающий класс-таблицу? Введите аннотацию.",
+      "options": null,
+      "correctAnswer": "@Entity",
+      "explanation": "@Entity(tableName = \"...\") — класс-таблица. @PrimaryKey — ключ, @ColumnInfo — имя колонки, @Index — индекс, @Ignore — поле вне таблицы, @Embedded — вложение объекта в колонки.",
+      "tags": ["entity"],
+      "difficulty": 0.15
+    },
+    {
+      "id": "room_031",
+      "type": "CARD",
+      "level": 2,
+      "text": "Опишите, как засеять базу стартовыми вопросами из JSON в assets при первом запуске.",
+      "options": null,
+      "correctAnswer": "RoomDatabase.Callback.onCreate → в отдельной корутине (IO) прочитать assets/content/*.json, распарсить и вставить через DAO; версию контента хранить для обновлений",
+      "explanation": "Реализация: 1) callback.onCreate запускает CoroutineScope(Dispatchers.IO).launch { seed() }. 2) seed() читает assets/content/{topic}.json (kotlinx.serialization), маппит в QuestionEntity. 3) Вставка через insertAll в @Transaction. 4) Версию contentVersion кладём в SharedPreferences/Room-meta: при росте версии в новом релизе — re-seed (upsert по стабильным id, прогресс не теряется). Альтернатива: createFromAsset(\"content.db\") с уже готовым файлом.",
+      "tags": ["seed", "database"],
+      "difficulty": 0.55
+    },
+    {
+      "id": "room_032",
+      "type": "CARD",
+      "level": 3,
+      "text": "Как безопасно менять схему базы в релизных приложениях (чтобы не потерять данные пользователей)?",
+      "options": null,
+      "correctAnswer": "Явные Migration-объекты между версиями + exportSchema + тест MigrationTestHelper; fallbackToDestructiveMigration только для некритичных кэшей",
+      "explanation": "Процесс: 1) Инкремент version. 2) Написать Migration(start, end) с SQL (ALTER TABLE, CREATE INDEX, перенос данных с копированием). 3) exportSchema=true, schema JSON в git. 4) Тест: MigrationTestHelper создаёт базу vN, прогоняет миграцию, сверяет схему vN+1. 5) Сложные изменения — трик: создать новую таблицу, INSERT SELECT, DROP старую, переименовать. 6) Проверить путь со всех старых версий (миграция 1→3 может идти через 1→2→3). Данные важнее — деструктивный режим только сознательно.",
+      "tags": ["migrations", "database"],
+      "difficulty": 0.7
+    }
+  ]
+}

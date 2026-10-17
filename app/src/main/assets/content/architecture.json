@@ -1,0 +1,526 @@
+{
+  "version": 1,
+  "topic": "architecture",
+  "questions": [
+    {
+      "id": "architecture_001",
+      "type": "MCQ",
+      "level": 1,
+      "text": "Что такое MVVM?",
+      "options": [
+        "Паттерн с разделением на Model (данные/бизнес), View (экран) и ViewModel (представление-модель: состояние View + события), связанные наблюдаемыми потоками",
+        "Паттерн с тремя слоями базы данных",
+        "Многоуровневая система файлов",
+        "Способ работы с Intent"
+      ],
+      "correctAnswer": "0",
+      "explanation": "MVVM: View наблюдает за ViewModel (StateFlow/LiveData), ViewModel не знает о View (ни Activity, ни Compose), Model — репозитории/источники данных. Двунаправленная связь через Observable убирает ручной код обновления UI. Ключ: ViewModel не держит Context.",
+      "tags": ["mvvm", "patterns"],
+      "difficulty": 0.2
+    },
+    {
+      "id": "architecture_002",
+      "type": "MCQ",
+      "level": 1,
+      "text": "Главное отличие ViewModel от обычного presenter/view-model класса в Android?",
+      "options": [
+        "Он быстрее",
+        "ViewModel переживает configuration change (поворот) и уничтожается только с экраном, храня состояние без утечек Context",
+        "Он работает с XML",
+        "Его нельзя тестировать"
+      ],
+      "correctAnswer": "1",
+      "explanation": "ViewModel живёт в ViewModelStore, который переживает поворот (onDestroy не вызывается при configuration change, а при onDestroy + recreate — да). Поэтому состояние не теряется, а ссылок на View/Activity нет — нет утечек. Хранение в onSaveInstanceState — только для process death.",
+      "tags": ["viewmodel", "lifecycle"],
+      "difficulty": 0.3
+    },
+    {
+      "id": "architecture_003",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Что такое односторонний поток данных (Unidirectional Data Flow, UDF)?",
+      "options": [
+        "Данные текут только из базы в UI",
+        "События идут вверх (UI → ViewModel: intent/event), состояние вниз (ViewModel → UI: state). UI не мутирует данные напрямую",
+        "Один экран в приложении",
+        "Запрет на Flow"
+      ],
+      "correctAnswer": "1",
+      "explanation": "UDF: View отправляет события (click, input) → ViewModel обновляет состояние → View рендерит новое состояние. Единый источник истины (state), предсказуемость, тестируемость (можно проверить переход state→state), отсутствие гонок. Основа MVI и современного MVVM с StateFlow.",
+      "tags": ["udf", "mvi"],
+      "difficulty": 0.4
+    },
+    {
+      "id": "architecture_004",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Чем MVI отличается от MVVM?",
+      "options": [
+        "Ничем",
+        "MVI формализует UDF: одно неизменяемое состояние всего экрана (Intent → reduce → State) и события, MVVM допускает несколько Observable-полей и колбэков",
+        "MVI работает только с XML",
+        "MVVM не поддерживает состояние"
+      ],
+      "correctAnswer": "1",
+      "explanation": "MVI (Model-View-Intent): sealed Intent (пользовательские действия), reducer (чистая функция state + intent → state), одно state-холдинг. MVVM — мягче: отдельные LiveData/Flow для разных частей, события через колбэки. На собеседовании: MVI — частный случай UDF со строгой иммутабельностью.",
+      "tags": ["mvi", "udf"],
+      "difficulty": 0.45
+    },
+    {
+      "id": "architecture_005",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Что такое Clean Architecture?",
+      "options": [
+        "Архитектура с разделением на слои (data/domain/presentation) и зависимостью, направленной внутрь: внешние слои знают о внутренних, но не наоборот",
+        "Чистый код без комментариев",
+        "Архитектура только для бэкенда",
+        "Микросервисы в Android"
+      ],
+      "correctAnswer": "0",
+      "explanation": "Clean Architecture (Martin) — концентрические слои: innermost = domain (business rules, независим от Android), затем data (реализации репозиториев/DTO), внешний = presentation (UI). Правило зависимости: domain ничего не знает про Room/Retrofit/UI; интерфейсы (порты) объявляются внутри, реализации (адаптеры) — снаружи.",
+      "tags": ["clean-architecture", "layers"],
+      "difficulty": 0.4
+    },
+    {
+      "id": "architecture_006",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Для чего в Clean Architecture слой domain (use cases)?",
+      "options": [
+        "Чтобы хранить UI-состояние",
+        "Инкапсулировать бизнес-правила/сценарии в тестируемые unit-классы без зависимостей от Android, Room, Retrofit",
+        "Для логирования",
+        "Для навигации"
+      ],
+      "correctAnswer": "1",
+      "explanation": "Use case (interactor) — именованный сценарий: GetQuestionsUseCase(topicId). Плюсы: переиспользование логики, чистые unit-тесты (мокаем репозиторий), единственная ответственность. Минус: boilerplate — для простых вызовов «репозиторий → ViewModel» use case избыточен; применяйте там, где есть реальная логика.",
+      "tags": ["usecase", "domain"],
+      "difficulty": 0.45
+    },
+    {
+      "id": "architecture_007",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Что такое Repository-паттерн в Android?",
+      "options": [
+        "Класс-посредник: единственный источник данных для domain, скрывающий выбор источника (Room, сеть, кэш) и маршрутизирующий запросы",
+        "Хранилище файлов",
+        "Класс Activity",
+        "Обёртка над SharedPreferences"
+      ],
+      "correctAnswer": "0",
+      "explanation": "Repository инкапсулирует «откуда данные»: observeQuestions() может отдавать Room-Flow, syncQuestions() — сеть. ViewModel/UseCase не знают про Room/Retrofit. Маппинг DTO ↔ domain-модели происходит здесь (или в DataSource). Один repository ≈ одна область предметной области.",
+      "tags": ["repository", "data"],
+      "difficulty": 0.35
+    },
+    {
+      "id": "architecture_008",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Где правильно хранить состояние экрана?",
+      "options": [
+        "В Activity в public var",
+        "В ViewModel как immutable StateFlow<UiState>, UI только читает и шлёт события",
+        "В static-компаньоне",
+        "В SharedPreferences"
+      ],
+      "correctAnswer": "1",
+      "explanation": "Единый неизменяемый UiState (data class/sealed) в StateFlow: Loading/Content/Error. ViewModel редуцирует состояние по событиям, UI (Compose) собирает через collectAsStateWithLifecycle. Это упрощает тесты (assert по переходам) и устраняет гонки между несколькими LiveData.",
+      "tags": ["state", "udf", "viewmodel"],
+      "difficulty": 0.4
+    },
+    {
+      "id": "architecture_009",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Чем sealed interface предпочтительнее enum для UI-состояний?",
+      "options": [
+        "Enum короче",
+        "У sealed-вариантов могут быть разные данные (Success(data), Error(throwable)), компилятор гарантирует исчерпывающий when",
+        "Sealed работает быстрее",
+        "Enum нельзя сериализовать"
+      ],
+      "correctAnswer": "1",
+      "explanation": "sealed interface ScreenState { object Loading; data class Content(val items: List<Item>); data class Error(val msg: String) } — каждый вариант несёт свои поля, when обязателен и проверен компилятором. Enum — одно поле со значениями, для разных payload не годится (вариант enum с полями общий на всех).",
+      "tags": ["sealed", "state"],
+      "difficulty": 0.4
+    },
+    {
+      "id": "architecture_010",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Зачем нужен интерфейс (порт) репозитория в domain, а не сразу реализация?",
+      "options": [
+        "Для красоты архитектуры",
+        "Чтобы домен зависел от абстракции: реализация подменяется (фейковая в тестах, другая в проде), зависимость направлена внутрь",
+        "Чтобы было больше файлов",
+        "Для ускорения сборки"
+      ],
+      "correctAnswer": "1",
+      "explanation": "Dependency Inversion: high-level модули не зависят от low-level. Интерфейс QuestionsRepository объявлен в domain; RoomQuestionsRepository реализован в data. Тесты подставляют FakeQuestionsRepository без Room/Retrofit. Это ключевой принцип чистой архитектуры.",
+      "tags": ["solid", "di"],
+      "difficulty": 0.5
+    },
+    {
+      "id": "architecture_011",
+      "type": "MCQ",
+      "level": 1,
+      "text": "Что означает принцип Single Responsibility (SRP)?",
+      "options": [
+        "Один класс на один метод",
+        "Класс имеет одну причину изменяться: одна ответственность/один повод для ревизии",
+        "Только один класс в пакете",
+        "Один поток в приложении"
+      ],
+      "correctAnswer": "1",
+      "explanation": "SRP (Martin): у класса — одна причина к изменению. QuizViewModel не парсит JSON, не пишет в Room и не рисует UI — только управляет состоянием квиза. Класс-«шкаф» (всё и сразу) ломается при любом изменении требований.",
+      "tags": ["solid"],
+      "difficulty": 0.25
+    },
+    {
+      "id": "architecture_012",
+      "type": "MCQ",
+      "level": 1,
+      "text": "Что такое Dependency Inversion (DIP)?",
+      "options": [
+        "Зависимости переворачиваются: высокоуровневые модули зависят от абстракций, реализации абстракций — от них же",
+        "Удаление зависимостей из проекта",
+        "Инверсия списка в коллекциях",
+        "Запрет на DI-фреймворки"
+      ],
+      "correctAnswer": "0",
+      "explanation": "ViewModel зависит от интерфейса Repository, а не от RoomRepository. Интерфейс живёт там же, где и потребитель (domain). Внедрение конкретной реализации — через конструктор (DI). Итог: замена источника данных не трогает бизнес-слой.",
+      "tags": ["solid", "di"],
+      "difficulty": 0.4
+    },
+    {
+      "id": "architecture_013",
+      "type": "MCQ",
+      "level": 1,
+      "text": "Что означает Open/Closed Principle?",
+      "options": [
+        "Классы должны быть открыты для расширения и закрыты для модификации",
+        "Открытый доступ к API",
+        "Закрытые модули",
+        "Open-source зависимости"
+      ],
+      "correctAnswer": "0",
+      "explanation": "Новое поведение добавляется новым кодом (новый subclass/класс/стратегия), а не правкой существующего протестированного кода. Пример: новый тип квиза = новый QuestionStrategy, а не ветка if в 5 местах.",
+      "tags": ["solid"],
+      "difficulty": 0.35
+    },
+    {
+      "id": "architecture_014",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Какие проблемы решает Dependency Injection?",
+      "options": [
+        "Ускоряет приложение",
+        "Убирает new зависимостей внутри классов: зависимости приходят через конструктор → тестируемость (подмена фейков), переиспользование, отсутствие скрытых глобальных состояний",
+        "Уменьшает размер APK",
+        "Повышает безопасность"
+      ],
+      "correctAnswer": "1",
+      "explanation": "Без DI класс сам создаёт зависимость (val db = Room.databaseBuilder...) — нельзя подменить на fake в тесте, связность растёт. С DI: class QuizViewModel(private val repo: QuestionsRepository). Фреймворки (Hilt/Koin) автоматизируют создание графа зависимостей.",
+      "tags": ["di", "testing"],
+      "difficulty": 0.35
+    },
+    {
+      "id": "architecture_015",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Что такое UiEvent/Intent в архитектуре и зачем он нужен?",
+      "options": [
+        "Аналог Intent в Android",
+        "Событие пользователя/системы (Click, Load, Retry), которое UI отправляет в ViewModel — отделение «что случилось» от «что показывать»",
+        "Тип навигации",
+        "Формат данных сети"
+      ],
+      "correctAnswer": "1",
+      "explanation": "sealed interface UiEvent { data class ItemClicked(val id); object Retry }. UI маппит жесты в события → viewModel.onEvent(event). ViewModel редуцирует state. Выигрыш: все действия логируются в одном месте, тест = «подали событие → получили состояние».",
+      "tags": ["udf", "mvi"],
+      "difficulty": 0.4
+    },
+    {
+      "id": "architecture_016",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Как правильно передавать одноразовые события (показать Toast, навигация)?",
+      "options": [
+        "Поле Boolean showToast в state — оно навсегда останется true",
+        "Отдельный канал событий (SharedFlow/Channel/Event-effect) или Event wrapper, который поглощается при обработке",
+        "Вызывать Toast прямо из репозитория",
+        "В onSaveInstanceState"
+      ],
+      "correctAnswer": "1",
+      "explanation": "Проблема «одноразовости»: state переживает поворот, и Toast сработает дважды. Решения: 1) MutableSharedFlow<Event> с подпиской в repeatOnLifecycle; 2) state + поглощение (eventHandled после показа); 3) Navigation через отдельный effect-канал. Надёжнее всего — событийный SharedFlow для эффектов, StateFlow для состояния.",
+      "tags": ["events", "udf"],
+      "difficulty": 0.55
+    },
+    {
+      "id": "architecture_017",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Что такое маппинг DTO → domain model и почему его делают?",
+      "options": [
+        "Это не нужно",
+        "Преобразование сетевых/базовых моделей в модели бизнес-слоя: домен не знает про JSON-поля Room/Retrofit, изменения API не трогают UI и use cases",
+        "Сериализация",
+        "Копирование данных"
+      ],
+      "correctAnswer": "1",
+      "explanation": "QuestionDto (поле title из JSON) → QuestionEntity (Room) → Question (domain). Три слоя могут меняться независимо: изменился API — правим только DTO/маппинг. Типичное место маппинга — DataSource или Repository (extension fun QuestionDto.toDomain()).",
+      "tags": ["data", "mapping"],
+      "difficulty": 0.45
+    },
+    {
+      "id": "architecture_018",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Для чего нужен UseCase с единственной функцией operator fun invoke()?",
+      "options": [
+        "Это требование Kotlin",
+        "Позволяет вызывать use case как функцию: getQuestions(topicId) вместо getQuestions.execute(topicId) — лаконичный API сценария",
+        "Ускоряет вызов",
+        "Для operator overloading UI"
+      ],
+      "correctAnswer": "1",
+      "explanation": "operator fun invoke превращает объект в вызываемый: class GetQuestionsUseCase(private val repo) { operator fun invoke(topicId: String) = repo.observe(topicId) }. Идиома MVVM-проектов: сценарий читается как функция, при этом это полноценный класс с зависимостями для DI и тестов.",
+      "tags": ["usecase"],
+      "difficulty": 0.5
+    },
+    {
+      "id": "architecture_019",
+      "type": "MCQ",
+      "level": 3,
+      "text": "Что такое Event Delegation / SharedFlow для навигации во ViewModel — как избежать проблемы «навигация в state»?",
+      "options": [
+        "Навигацию нельзя выносить из View",
+        "Передавать навигационные команды отдельным эффект-каналом, чтобы поворот экрана не повторял переход; либо state-машина с route в UI и поглощением",
+        "Хранить route в SharedPreferences",
+        "Использовать static-навигацию"
+      ],
+      "correctAnswer": "1",
+      "explanation": "Навигация — эффект (одноразово), состояние — постоянное. Паттерн: _navigation = MutableSharedFlow<NavEvent>(extraBufferCapacity = 1), UI подписывается и вызывает navController.navigate. Или декларативно: state.route + LaunchedEffect(route) с очисткой. Тестирование навигации — проверка emitted-событий.",
+      "tags": ["events", "navigation"],
+      "difficulty": 0.65
+    },
+    {
+      "id": "architecture_020",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Какие слои минимально достаточно для небольшого приложения (avoid over-engineering)?",
+      "options": [
+        "Всегда все 7 слоёв по Clean Architecture",
+        "Presentation (Compose + ViewModel) → Repository → DataSource (Room/Retrofit); use cases — только там, где есть реальная логика",
+        "Только View без ViewModel",
+        "Только data-слой"
+      ],
+      "correctAnswer": "1",
+      "explanation": "Инженерная зрелость: слои там, где решают задачу. Для CRUD-приложения ViewModel → Repository → DAO хватает. Use case добавляем, когда логика не trivial (расчёты, мульти-источники, условия). Over-engineering (интерфейс на каждый класс) замедляет разработку без выгоды.",
+      "tags": ["clean-architecture", "pragmatism"],
+      "difficulty": 0.5
+    },
+    {
+      "id": "architecture_021",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Что такое Data Binding vs View Binding в архитектуре View-слоя?",
+      "options": [
+        "Одно и то же",
+        "View Binding — типизированный доступ к view из XML (без findViewById); Data Binding — привязка данных/выражений прямо в XML. В Compose оба не нужны",
+        "Data Binding быстрее",
+        "View Binding работает только с XML-атрибутами"
+      ],
+      "correctAnswer": "1",
+      "explanation": "View Binding: generated class по разметке, безопаснее findViewById. Data Binding: <layout> + выражения @{viewModel.name}, двусторонняя привязка — считается устаревшей практикой (сложно отлаживать). С переходом на Compose оба инструмента отпадают.",
+      "tags": ["view", "binding"],
+      "difficulty": 0.4
+    },
+    {
+      "id": "architecture_022",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Как ViewModel связывается с Android-жизненным циклом без утечек?",
+      "options": [
+        "Хранит ссылку на Activity",
+        "Через by viewModels()/viewModelScope: доступ через ViewModelStore, состояние отвязывается от View при её уничтожении, scope отменяется в onCleared",
+        "Через static-ссылку",
+        "Через Handler"
+      ],
+      "correctAnswer": "1",
+      "explanation": "Fragment/Activity получают ViewModel через делегат (viewModels()) — фабрика достаёт из ViewModelStore. UI подписывается на Flow и отписывается при уничтожении (repeatOnLifecycle). Ссылок на View в ViewModel нет. viewModelScope отменяется в onCleared — фоновые корутины не текут после закрытия экрана.",
+      "tags": ["viewmodel", "lifecycle"],
+      "difficulty": 0.4
+    },
+    {
+      "id": "architecture_023",
+      "type": "MCQ",
+      "level": 3,
+      "text": "Что такое reducers в MVI?",
+      "options": [
+        "Функция уменьшения массива",
+        "Чистая функция reduce(state, intent) → newState, атомарно применяющая события к состоянию — предсказуемость и лёгкое тестирование",
+        "Удаление state",
+        "Оптимизация памяти"
+      ],
+      "correctAnswer": "1",
+      "explanation": "Reducer — сердце MVI: State((state), event) — без побочных эффектов. Побочные эффекты (загрузка, навигация) — в middleware/side-effect слоях вокруг. Так переходы тестируются как чистые функции: assert reduce(state, Click) == expected.",
+      "tags": ["mvi", "udf"],
+      "difficulty": 0.65
+    },
+    {
+      "id": "architecture_024",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Что такое Anti-pattern «Angular-Controller» в ViewModel?",
+      "options": [
+        "ViewModel, который содержит логику парсинга, сеть, базу и рисование — God-класс, нарушающий SRP",
+        "Использование DI",
+        "Правильный MVVM",
+        "Слишком короткий ViewModel"
+      ],
+      "correctAnswer": "0",
+      "explanation": "Когда ViewModel разрастается в «всё умеющий» класс (500+ строк, манипулирует Room, Retrofit, Context, анимациями) — он перестаёт быть тестируемым. Приём деления: вынести логику в use case/делегаты, оставить в ViewModel только координацию состояния.",
+      "tags": ["solid", "viewmodel"],
+      "difficulty": 0.5
+    },
+    {
+      "id": "architecture_025",
+      "type": "TRUE_FALSE",
+      "level": 1,
+      "text": "ViewModel должен знать о Fragment/Activity, чтобы обновлять UI напрямую.",
+      "options": ["Верно", "Неверно"],
+      "correctAnswer": "1",
+      "explanation": "ViewModel не должна знать о View вообще (ни via reference, ни via interface, кроме абстрактных событий). Связь односторонняя: UI наблюдает за состоянием. Знание View приводит к утечкам памяти при повороте и невозможности unit-тестов.",
+      "tags": ["mvvm", "viewmodel"],
+      "difficulty": 0.3
+    },
+    {
+      "id": "architecture_026",
+      "type": "TRUE_FALSE",
+      "level": 2,
+      "text": "Слой domain в чистой архитектуре может зависеть от Room и Retrofit.",
+      "options": ["Верно", "Неверно"],
+      "correctAnswer": "1",
+      "explanation": "Зависимости направлены внутрь: domain (innermost) не знает про внешние фреймворки — только про свои модели/интерфейсы. Room/Retrofit живут в data-слое и реализуют интерфейсы domain. Нарушение → domain нельзя тестировать без Android/сети.",
+      "tags": ["clean-architecture", "layers"],
+      "difficulty": 0.45
+    },
+    {
+      "id": "architecture_027",
+      "type": "TRUE_FALSE",
+      "level": 2,
+      "text": "Repository — единственное место, где определяется, брать ли данные из кэша или из сети.",
+      "options": ["Верно", "Неверно"],
+      "correctAnswer": "0",
+      "explanation": "Repository — стратег источника: observe() из Room (offline-first), sync() из API, кэш-политика (stale-while-revalidate). ViewModel/UseCase не знают про источники. Это и есть инкапсуляция «откуда данные».",
+      "tags": ["repository", "data"],
+      "difficulty": 0.35
+    },
+    {
+      "id": "architecture_028",
+      "type": "INPUT",
+      "level": 1,
+      "text": "Как называется паттерн, где экран разделён на Model, View и ViewModel? Введите аббревиатуру.",
+      "options": null,
+      "correctAnswer": "MVVM",
+      "explanation": "MVVM (Model-View-ViewModel) — стандарт Android Jetpack: View (Activity/Compose) наблюдает ViewModel, ViewModel держит состояние, Model — данные. Внятный ответ на собеседовании: «у нас MVVM + UDF: StateFlow-состояние и события вверх».",
+      "tags": ["mvvm", "patterns"],
+      "difficulty": 0.1
+    },
+    {
+      "id": "architecture_029",
+      "type": "INPUT",
+      "level": 2,
+      "text": "Название принципа SOLID: «классы открыты для расширения и закрыты для модификации». Введите английский термин.",
+      "options": null,
+      "correctAnswer": "Open/Closed",
+      "explanation": "Open/Closed Principle: расширяемость через наследование/композицию/стратегии, без правки уже работающего кода. На практике — интерфейсы + добавление новых реализаций вместо ветвлений if/else по типам.",
+      "tags": ["solid"],
+      "difficulty": 0.3
+    },
+    {
+      "id": "architecture_030",
+      "type": "CARD",
+      "level": 2,
+      "text": "Назовите слои Clean Architecture в Android-проекте и их типичные классы.",
+      "options": null,
+      "correctAnswer": "presentation (Compose, ViewModel, UiState) → domain (модели, интерфейсы репозиториев, use cases) → data (Room DAO, Retrofit API, реализации репозиториев, DTO↔domain маппинг)",
+      "explanation": "presentation: экраны, UiState/UiEvent, навигация. domain: сущности (Question, Topic), порты (QuestionsRepository interface), сценарии (GetDueCardsUseCase) — без Android-зависимостей. data: local (Room), remote (Retrofit), repository-реализации, мапперы, кэш-политика. Зависимости: presentation → domain ← data (направлены внутрь).",
+      "tags": ["clean-architecture", "layers"],
+      "difficulty": 0.45
+    },
+    {
+      "id": "architecture_031",
+      "type": "CARD",
+      "level": 2,
+      "text": "Опишите полный цикл данных в приложении квиза: нажатие «Ответить» до показа результата.",
+      "options": null,
+      "correctAnswer": "UI шлёт AnswerSelected(id) в ViewModel → ViewModel валидирует через UseCase/Repository → обновляет UiState (feedback + score) → Compose рекомпозируется",
+      "explanation": "Пошагово: 1) Compose: Button(onClick = { onEvent(AnswerSelected(optionId)) }). 2) ViewModel.onEvent: вызывает GradeAnswerUseCase(questionId, answerId). 3) UseCase: сравнивает с правильным, пишет AnswerEntity/Progress в репозиторий (Room) и возвращает verdict. 4) ViewModel: state.copy(feedback = Correct/Wrong, score = score + 1). 5) StateFlow эмит → collectAsState → рекомпозиция. Сети нет, всё предсказуемо и тестируемо: событие → состояние.",
+      "tags": ["udf", "flows"],
+      "difficulty": 0.55
+    },
+    {
+      "id": "architecture_032",
+      "type": "CARD",
+      "level": 3,
+      "text": "В чём разница между LiveData и StateFlow в роли состояния ViewModel?",
+      "options": null,
+      "correctAnswer": "LiveData привязан к Lifecycle (автоподписка) и Android-классам; StateFlow — чистый Kotlin, переживает всё, требует repeatOnLifecycle/collectAsState, схлопывает дубликаты по equals",
+      "explanation": "LiveData: observe() сам учитывает жизненный цикл, нельзя использовать вне Android (тесты с InstantTaskExecutorRule), устаревает. StateFlow: не имеет понятия наблюдателя-владельца, подписка ручная (но в Compose — collectAsStateWithLifecycle одной строкой), value всегда доступно, дубликаты отбрасываются, работает в JVM-тестах. Современная рекомендация — StateFlow (+SharedFlow для событий); LiveData допустима в legacy.",
+      "tags": ["stateflow", "livedata"],
+      "difficulty": 0.55
+    },
+    {
+      "id": "architecture_033",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Что такое экранная архитектура (screen-level architecture)?",
+      "options": [
+        "Один ViewModel на весь экран со своим state и event — граница модульности и переиспользования",
+        "Один Activity на всё приложение",
+        "Отдельный экран на каждый запрос",
+        "Отказ от ViewModel"
+      ],
+      "correctAnswer": "0",
+      "explanation": "Граница фичи = экран: свой UiState, UiEvent, ViewModel (+ при желании дочерние ViewModel по navigation-графу). Так независимо тестируются, переиспользуются подмножества и изолируются баги. Composite-подход: несколько ViewModel на вложенные части экрана.",
+      "tags": ["mvvm", "modularity"],
+      "difficulty": 0.45
+    },
+    {
+      "id": "architecture_034",
+      "type": "MCQ",
+      "level": 3,
+      "text": "Какие признаки, что архитектура «переросла» один Gradle-модуль?",
+      "options": [
+        "Больше 100 файлов",
+        "Скорость сборки падает, границы нарушаются (presentation импортирует DTO), нужен feature-разделение: :feature:quiz, :core:data, :core:domain",
+        "Много экранов",
+        "Используется Compose"
+      ],
+      "correctAnswer": "1",
+      "explanation": "Многомодульность: feature-модули (низкая связанность, параллельная сборка командой) + core-библиотеки (common). Признаки: долгий build, циклические импорты, «всё в app». Начинать не стоит — сначала чистые пакеты, потом выделение module по мере роста (api-интерфейсы между модулями).",
+      "tags": ["modularity", "gradle"],
+      "difficulty": 0.7
+    },
+    {
+      "id": "architecture_035",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Какую роль в архитектуре играет SavedStateHandle?",
+      "options": [
+        "Замена ViewModel",
+        "Переживание process death: сохраняет мелкие ключевые данные (id, текст формы) в Bundle, доступные из ViewModel после убийства процесса",
+        "Хранение large данных",
+        "Кэш сети"
+      ],
+      "correctAnswer": "1",
+      "explanation": "ViewModel переживает поворот, но НЕ гибель процесса (system kill). SavedStateHandle — необязательный контейнер в ViewModel: savedStateHandle[\"query\"] сохраняется в instance state и восстанавливается. Для больших данных (списки) — только в памяти/базе, SavedStateHandle не для этого.",
+      "tags": ["viewmodel", "lifecycle"],
+      "difficulty": 0.5
+    }
+  ]
+}

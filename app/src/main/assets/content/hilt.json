@@ -1,0 +1,451 @@
+{
+  "version": 1,
+  "topic": "hilt",
+  "questions": [
+    {
+      "id": "hilt_001",
+      "type": "MCQ",
+      "level": 1,
+      "text": "Что такое Dependency Injection (DI)?",
+      "options": [
+        "Паттерн, при котором зависимости приходят в класс извне (обычно через конструктор), а не создаются им самим",
+        "Способ внедрения базы данных в Activity",
+        "Фреймворк для сетевых запросов",
+        "Технология инъекции кода в APK"
+      ],
+      "correctAnswer": "0",
+      "explanation": "Вместо val repo = RoomRepository() внутри класса — class ViewModel(private val repo: QuestionsRepository). Класс объявляет ЧТО нужно, а кто и как создаст — решает контейнер DI. Выгоды: тестируемость (подмена фейка), слабая связанность, переиспользование.",
+      "tags": ["basics"],
+      "difficulty": 0.2
+    },
+    {
+      "id": "hilt_002",
+      "type": "MCQ",
+      "level": 1,
+      "text": "Зачем нужен DI-фреймворк (Hilt/Koin), если можно передавать зависимости вручную?",
+      "options": [
+        "Он ускоряет приложение",
+        "Автоматизирует построение графа зависимостей: не нужно вручную создавать цепочки (для Repo нужен DAO, для DAO — база, для базы — Context)",
+        "Он шифрует зависимости",
+        "Он заменяет тесты"
+      ],
+      "correctAnswer": "1",
+      "explanation": "Вручную всё работать будет, но построение графа превращается в ручную кладку: например, Activity создала базу → передала в репозиторий → в use case → в ViewModel. Hilt генерирует код по аннотациям, лениво создаёт и кэширует объекты, обрабатывает жизненный цикл.",
+      "tags": ["basics", "hilt"],
+      "difficulty": 0.3
+    },
+    {
+      "id": "hilt_003",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Какие аннотации — база Hilt для Android-компонентов?",
+      "options": [
+        "@HiltAndroidApp (Application), @AndroidEntryPoint (Activity/Fragment), @HiltViewModel (ViewModel)",
+        "@Inject, @Component, @Module — всё вручную",
+        "@KoinComponent, @KoinModule",
+        "@Provides, @Binds только"
+      ],
+      "correctAnswer": "0",
+      "explanation": "Три аннотации покрывают 90% кода: 1) @HiltAndroidApp на Application — точка входа графа; 2) @AndroidEntryPoint на Activity/Fragment/Service — разрешение полей @Inject; 3) @HiltViewModel + @Inject constructor — ViewModel получает зависимости. Плюс @Module для провайдов.",
+      "tags": ["hilt", "setup"],
+      "difficulty": 0.4
+    },
+    {
+      "id": "hilt_004",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Что делает аннотация @Inject на поле/конструкторе?",
+      "options": [
+        "Просит Hilt внедрить зависимость: на constructor — «создай меня с этими зависимостями», на поле — «заполни это поле после создания объекта»",
+        "Создаёт singleton",
+        "Включает логирование",
+        "Генерирует getter"
+      ],
+      "correctAnswer": "0",
+      "explanation": "@Inject constructor(private val repo: Repository) — Hilt сам создаст класс, подставив repo. @Inject lateinit var binding — внедрение в уже существующий объект (Activity/Fragment после @AndroidEntryPoint). Для классов без вашего кода (Room, Retrofit) — @Provides в модуле.",
+      "tags": ["inject"],
+      "difficulty": 0.4
+    },
+    {
+      "id": "hilt_005",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Чем @Provides отличается от @Binds в Hilt-модуле?",
+      "options": [
+        "Ничем",
+        "@Provides — создаёт экземпляр вручную (тело функции, Retrofit/Room); @Binds — связывает абстракцию с уже существующей реализацией (интерфейс → класс) без тела",
+        "@Binds работает только в тестах",
+        "@Provides нельзя использовать с Context"
+      ],
+      "correctAnswer": "1",
+      "explanation": "@Provides: fun provideRetrofit(): Retrofit = Retrofit.Builder()... — любой код создания. @Binds (только в abstract/interface-модулях): fun bindRepo(impl: RoomRepo): Repo = impl — дешёвая привязка, компилятор генерирует делегирование без лишней обёртки. Идиома: impl-класс имеет @Inject constructor → @Binds.",
+      "tags": ["modules", "provides", "binds"],
+      "difficulty": 0.5
+    },
+    {
+      "id": "hilt_006",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Как объявить модуль Hilt?",
+      "options": [
+        "@Module @InstallIn(SingletonComponent::class) object/class с @Provides или @Binds",
+        "Просто object без аннотаций",
+        "@Component по Dagger",
+        "Через XML"
+      ],
+      "correctAnswer": "0",
+      "explanation": "@Module + @InstallIn(составляющая) определяют, где живут провайды. installIn-компонент определяет область жизни (см. скоупы): SingletonComponent — весь процесс, ActivityRetainedComponent — переживает configuration change, ViewModelComponent — ViewModel, Fragment/Service — их жизненный цикл.",
+      "tags": ["modules"],
+      "difficulty": 0.4
+    },
+    {
+      "id": "hilt_007",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Что делает @Singleton в Hilt?",
+      "options": [
+        "Создаёт Java-синглтон через static",
+        "Ограничивает жизненный цикл экземпляра границами SingletonComponent — один экземпляр на весь процесс приложения",
+        "Делает класс потокобезопасным",
+        "Сохраняет объект в Bundle"
+      ],
+      "correctAnswer": "1",
+      "explanation": "@Singleton (в AndroidX-смысле — скоуп компонента) говорит: «в этом компоненте — один экземпляр». @Singleton @Provides fun provideDb = ... → база одна на процесс. Без скоупа каждый запрос получит новый объект (что убьёт Room). Скоупы: Singleton, ActivityRetained, ViewModel, Activity, Fragment, Service.",
+      "tags": ["scopes"],
+      "difficulty": 0.45
+    },
+    {
+      "id": "hilt_008",
+      "type": "MCQ",
+      "level": 2,
+      "text": "В каком скоупе правильно предоставлять экземпляр Room Database?",
+      "options": [
+        "ViewModelComponent",
+        "@Singleton (SingletonComponent) — один на процесс, утечка DB-ссылок недопустима",
+        "FragmentComponent",
+        "Без скоупа, каждый раз новый"
+      ],
+      "correctAnswer": "1",
+      "explanation": "База — дорогой ресурс с внутренним пулом: должна жить в одном экземпляре. @Module @InstallIn(SingletonComponent::class) + @Provides @Singleton. DAO — тоже часто singleton (тонкая обёртка). ViewModel-скоуп — для состояния экрана, не для долгоживущих ресурсов.",
+      "tags": ["scopes", "room"],
+      "difficulty": 0.5
+    },
+    {
+      "id": "hilt_009",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Как внедрить зависимости во ViewModel c Hilt?",
+      "options": [
+        "@HiltViewModel class VM @Inject constructor(...) + by viewModels() в @AndroidEntryPoint",
+        "Создавать VM вручную с new",
+        "Передавать через arguments",
+        "Через static-поле"
+      ],
+      "correctAnswer": "0",
+      "explanation": "@HiltViewModel ставится на класс, @Inject constructor — на параметрах; фрагмент/активити с @AndroidEntryPoint получает VM делегатом by viewModels(). Hilt подставит фабрику, соблюдя скоупы (VM-компонент живёт до onCleared). В Compose — hiltViewModel().",
+      "tags": ["hilt", "viewmodel"],
+      "difficulty": 0.45
+    },
+    {
+      "id": "hilt_010",
+      "type": "MCQ",
+      "level": 3,
+      "text": "Как внедрить зависимости в WorkManager-Worker с Hilt?",
+      "options": [
+        "@AndroidEntryPoint на worker",
+        "HiltWorkerFactory + @HiltWorker на классе worker'а и @Inject в конструкторе; настройка Configuration.Provider в Application",
+        "Worker не поддерживает DI",
+        "Через Preferences"
+      ],
+      "correctAnswer": "1",
+      "explanation": "Worker создаётся не Hilt'ом, поэтому нужна связка: Application реализует Configuration.Provider с HiltWorkerFactory, в WorkManager.initialize передаётся конфиг; сам worker — @HiltWorker + @AssistedInject constructor (assisted-параметры Context/WorkerParameters даёт система).",
+      "tags": ["hilt", "workmanager"],
+      "difficulty": 0.75
+    },
+    {
+      "id": "hilt_011",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Что такое Qualifier (квалификатор) в Hilt?",
+      "options": [
+        "Аннотация, различающая несколько реализаций одного типа (например, baseUrl для сервера и для файлов)",
+        "Проверка версии библиотеки",
+        "Тип модуля",
+        "Обозначение nullable-зависимости"
+      ],
+      "correctAnswer": "0",
+      "explanation": "Проблема: два @Provides того же типа Retrofit. Решение — кастомный квалификатор: @Qualifier annotation class AuthOkHttp. Ставится и на провайд, и на точку внедрения: @Inject @AuthOkHttp lateinit var client. Готовые: @ApplicationContext, @ActivityContext, @ServiceCompat.",
+      "tags": ["qualifiers"],
+      "difficulty": 0.6
+    },
+    {
+      "id": "hilt_012",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Как получить Application Context через Hilt?",
+      "options": [
+        "context.applicationContext везде",
+        "@Inject @ApplicationContext lateinit var context: Context — Hilt предоставляет контекст приложения без утечек Activity",
+        "static Context",
+        "Hilt не умеет работать с Context"
+      ],
+      "correctAnswer": "1",
+      "explanation": "@ApplicationContext и @ActivityContext — готовые квалификаторы Hilt. Для репозиториев/WorkManager используйте Application Context (не Activity — утечка!). Для UI-ресурсов — Activity Context через @ActivityContext.",
+      "tags": ["context", "qualifiers"],
+      "difficulty": 0.5
+    },
+    {
+      "id": "hilt_013",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Что такое entry point в Hilt?",
+      "options": [
+        "Точка входа в приложение (main-функция)",
+        "Механизм получения зависимостей из классов, которые Hilt не создаёт (например, написанных не вами): @EntryPoint интерфейс + EntryPointAccessors.fromApplication(...)",
+        "Аналог @Provides",
+        "Событие старта графа"
+      ],
+      "correctAnswer": "1",
+      "explanation": "Hilt не внедряется в чужой код (ContentProvider, сторонние SDK, блок инициализации). @EntryPoint interface AnalyticsEntryPoint { fun analytics(): Analytics } + EntryPointAccessors.fromApplication(context, ...). — легальный доступ к уже построенному графу.",
+      "tags": ["entry-point"],
+      "difficulty": 0.7
+    },
+    {
+      "id": "hilt_014",
+      "type": "MCQ",
+      "level": 3,
+      "text": "Как подменить зависимость в androidTest/instrumented-тестах с Hilt?",
+      "options": [
+        "Переписать прод-модуль",
+        "@UninstallModules(ProdModule::class) + @InstallIn(SingletonComponent::class) тестовый модуль с фейком, обёрнутый в @HiltAndroidTest + HiltAndroidRule",
+        "Никак — Hilt нельзя тестировать",
+        "Через reflection"
+      ],
+      "correctAnswer": "1",
+      "explanation": "Тестовая иерархия: @HiltAndroidTest класс → HiltAndroidRule → @UninstallModules выгружает прод-модуль, тестовый @Module @InstallIn(SingletonComponent::class) ставит FakeRepository. Для JVM unit-тестов Hilt вообще не нужен — зависимости передаются в конструктор вручную.",
+      "tags": ["testing", "modules"],
+      "difficulty": 0.75
+    },
+    {
+      "id": "hilt_015",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Что такое @BindsMutable / multibinding (Set/Map) в Hilt?",
+      "options": [
+        "Запрет мутации",
+        "Сбор нескольких реализаций одного типа в Set/Map (IntoSet/IntoMap): например, набор трекеров аналитики или map обработчиков диплинков",
+        "Альтернатива @Provides",
+        "Связка двух модулей"
+      ],
+      "correctAnswer": "1",
+      "explanation": "@IntoSet: каждый @Provides с такой аннотацией добавляет элемент в Set<Tracker>. Потребитель получает весь Set и итерирует. Удобно для плагинов/стратегий: добавили провайд — расширили поведение, не меняя потребителя (OCP).",
+      "tags": ["multibinding"],
+      "difficulty": 0.75
+    },
+    {
+      "id": "hilt_016",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Что такое @AssistedInject / @AssistedFactory?",
+      "options": [
+        "Автоматическая генерация UI",
+        "Часть зависимостей предоставляется DI, часть — вручную в момент создания (например, id из навигации): фабрика принимает аргументы",
+        "Помощник для тестов",
+        "Синоним @Provides"
+      ],
+      "correctAnswer": "1",
+      "explanation": "@AssistedInject constructor(val repo: Repo, @Assisted val quizId: String) + @AssistedFactory interface VMFactory { fun create(id: String): QuizVM }. В ViewModelProvider.Factory / hiltViewModel creationExtras подставляют quizId. Классика навигации «id приходит снаружи, остальное — из графа».",
+      "tags": ["assisted-inject"],
+      "difficulty": 0.8
+    },
+    {
+      "id": "hilt_017",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Чем Hilt отличается от «чистого» Dagger?",
+      "options": [
+        "Ничем",
+        "Hilt — это DSL поверх Dagger с аннотациями под Android-компоненты: генерирует компоненты/фабрики сам, не требуя ручной сборки component'ов и компонентных зависимостей",
+        "Hilt работает только в Compose",
+        "Dagger устарел полностью"
+      ],
+      "correctAnswer": "1",
+      "explanation": "Dagger даёт полный контроль: вручную объявляешь @Component, @Subcomponent, компонентные зависимости, scopes. Hilt — соглашение: аннотируешь, он генерирует. Dagger остаётся выбором для экзотических схем, но 95% Android-проектов — Hilt или Koin.",
+      "tags": ["hilt", "dagger"],
+      "difficulty": 0.5
+    },
+    {
+      "id": "hilt_018",
+      "type": "MCQ",
+      "level": 1,
+      "text": "Hilt vs Koin — что верно?",
+      "options": [
+        "Hilt — компиляционный (annotation processing, codegen), Koin — runtime-DSL на Kotlin без кодогенерации (объявление графа как функций)",
+        "Koin компилируется, Hilt — нет",
+        "Оба работают только через reflection",
+        "Koin не поддерживает Android"
+      ],
+      "correctAnswer": "0",
+      "explanation": "Hilt/Dagger: аннотации → генерируемый код → ошибки графа на этапе сборки, чуть дольше build. Koin: module { single { ... } } — объявления в рантайме, быстрый старт, ошибки при первом resolve. Оба популярны; на собеседовании — уметь объяснить разницу компиляционного и runtime-подхода.",
+      "tags": ["hilt", "koin"],
+      "difficulty": 0.4
+    },
+    {
+      "id": "hilt_019",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Как Hilt поступает с жизненным циклом Activity при получении Context?",
+      "options": [
+        "Хранит ссылку на Activity в SingletonComponent",
+        "Использует ActivityRetainedComponent/activity-скоупы: Activity-зависимости живут до onDestroy и переживают поворот, Application Context — в SingletonComponent без утечек",
+        "Не работает с Context",
+        "Создаёт новый процесс"
+      ],
+      "correctAnswer": "1",
+      "explanation": "Иерархия компонентов Hilt отражает Android-жизненный цикл: SingletonComponent (процесс) ⊃ ActivityRetainedComponent (переживает configuration change) ⊃ ActivityComponent ⊃ FragmentComponent. Поэтому @ActivityContext и Activity-скоупы не текут после закрытия экрана.",
+      "tags": ["scopes", "lifecycle"],
+      "difficulty": 0.6
+    },
+    {
+      "id": "hilt_020",
+      "type": "MCQ",
+      "level": 3,
+      "text": "Можно ли использовать Hilt без аннотационного процессора KSP в проекте с Kotlin?",
+      "options": [
+        "Да, Hilt работает без KSP",
+        "Нет: Hilt требует KSP (или kapt) для генерации кода — отсюда влияние на время сборки",
+        "Только с KAPT, KSP не поддерживается",
+        "Только в Java-проектах"
+      ],
+      "correctAnswer": "1",
+      "explanation": "Hilt — annotation processor: нужен kapt (legacy) или ksp (предпочтительно, быстрее). Настройка: плагин ksp + hilt-compiler. Влияние на build-time заметно на больших проектах — аргумент за Koin в маленьких командах.",
+      "tags": ["hilt", "build"],
+      "difficulty": 0.7
+    },
+    {
+      "id": "hilt_021",
+      "type": "TRUE_FALSE",
+      "level": 1,
+      "text": "DI-контейнер создаёт все зависимости сразу при старте приложения.",
+      "options": ["Верно", "Неверно"],
+      "correctAnswer": "1",
+      "explanation": "Hilt строит граф компиляционно, но объекты создаются лениво при первом запросе (и кэшируются в скоупе). Поэтому дорогие зависимости (Retrofit, база) не создаются, если их никто не попросил. @Singleton = «один, когда попросят», а не «при запуске».",
+      "tags": ["basics", "scopes"],
+      "difficulty": 0.4
+    },
+    {
+      "id": "hilt_022",
+      "type": "TRUE_FALSE",
+      "level": 2,
+      "text": "В Hilt нельзя внедрить зависимость в класс, создаваемый самим Android-фреймворком (например, в BroadcastReceiver из манифеста) без @AndroidEntryPoint.",
+      "options": ["Верно", "Неверно"],
+      "correctAnswer": "0",
+      "explanation": "Hilt внедряет только в компоненты, которые он «знает» (@AndroidEntryPoint для Activity/Fragment/Service/BroadcastReceiver/NavigationDestination) или создаёт сам. Для чужих классов — @EntryPoint либо ручное получение через EntryPointAccessors.",
+      "tags": ["entry-point"],
+      "difficulty": 0.55
+    },
+    {
+      "id": "hilt_023",
+      "type": "TRUE_FALSE",
+      "level": 3,
+      "text": "@Singleton в Hilt — это то же самое, что object или singleton-паттерн в Kotlin.",
+      "options": ["Верно", "Неверно"],
+      "correctAnswer": "1",
+      "explanation": "object — глобальный синглтон в коде (тестировать тяжело, нет подмены). @Singleton Hilt — скоуп контейнера: единственный экземпляр в пределах компонента, но создаётся контейнером, подменяется в тестах, ленив. Это скоуп, а не язык.",
+      "tags": ["scopes"],
+      "difficulty": 0.6
+    },
+    {
+      "id": "hilt_024",
+      "type": "INPUT",
+      "level": 1,
+      "text": "Аннотация, которой помечается Application-класс в проекте с Hilt. Введите её.",
+      "options": null,
+      "correctAnswer": "@HiltAndroidApp",
+      "explanation": "@HiltAndroidApp class App : Application() — генерирует Hilt-точку входа и компонент приложения. Без неё остальные @AndroidEntryPoint не работают. Также здесь настраивают WorkManager-фабрику (если используется) и логгер.",
+      "tags": ["hilt", "setup"],
+      "difficulty": 0.15
+    },
+    {
+      "id": "hilt_025",
+      "type": "INPUT",
+      "level": 1,
+      "text": "Аннотация, помечающая Activity для внедрения зависимостей в Hilt. Введите её.",
+      "options": null,
+      "correctAnswer": "@AndroidEntryPoint",
+      "explanation": "@AndroidEntryPoint ставится на Activity/Fragment/Service/BroadcastReceiver/NavigationDestination. Внутри — @Inject-поля. Генерируется подкласс-обёртка, разрешающая граф. Для ViewModel дополнительно нужен @HiltViewModel на самом ViewModel.",
+      "tags": ["hilt"],
+      "difficulty": 0.15
+    },
+    {
+      "id": "hilt_026",
+      "type": "CARD",
+      "level": 2,
+      "text": "Опишите полную настройку Hilt в проекте: от build.gradle до внедрения во ViewModel.",
+      "options": null,
+      "correctAnswer": "1) plugins: ksp + hilt; 2) deps: hilt-android + ksp compiler; 3) @HiltAndroidApp в Application; 4) @AndroidEntryPoint на экране; 5) @HiltViewModel + @Inject constructor во ViewModel; 6) @Module/@InstallIn для Room/Retrofit",
+      "explanation": "Пошагово: build.gradle.kts — плагины com.google.dagger.hilt.android и ksp, зависимости hilt-android и hilt-compiler (через ksp). Application: @HiltAndroidApp. Модуль: @Module @InstallIn(SingletonComponent::class) с @Provides @Singleton для Room/Retrofit/репозиториев (@Binds для интерфейсов). Экран: @AndroidEntryPoint. ViewModel: @HiltViewModel class X @Inject constructor(...) : ViewModel(). Получение: by viewModels() (Fragment/Activity) или hiltViewModel() (Compose). Манифест: name=.App.",
+      "tags": ["hilt", "setup"],
+      "difficulty": 0.5
+    },
+    {
+      "id": "hilt_027",
+      "type": "CARD",
+      "level": 3,
+      "text": "Как заменить зависимость на фейковую в тестах, используя Hilt?",
+      "options": null,
+      "correctAnswer": "Unit-тесты: передать фейк в конструктор вручную (DI не нужен). Instrumented: @HiltAndroidTest + @UninstallModules(ProdModule) + тестовый модуль с Fake через @InstallIn(SingletonComponent)",
+      "explanation": "Ключевой тезис: чистые конструкторы дают бесплатные unit-тесты — new QuizViewModel(fakeRepo, ...) без Hilt. Для инструментальных тестов: @HiltAndroidTest @UninstallModules([ProdModule::class]) class MyTest { @get:Rule val rule = HiltAndroidRule(this); @Module @InstallIn(SingletonComponent::class) object TestModule { @Provides @Singleton fun repo(): Repo = FakeRepo() }. Затем createAndroidComposeRule и запуск. Hilt отдаёт тестовый граф вместо продового.",
+      "tags": ["testing", "hilt"],
+      "difficulty": 0.75
+    },
+    {
+      "id": "hilt_028",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Какие зависимости правильно НЕ кэшировать в @Singleton?",
+      "options": [
+        "Room Database",
+        "Зависимости, привязанные к экрану/активити (ViewState, кэш экрана) — им нужен activity/viewmodel-скоуп",
+        "Retrofit",
+        "Репозиторий"
+      ],
+      "correctAnswer": "1",
+      "explanation": "Singleton — для процессно-долгих ресурсов: база, репозитории, сеть, трекеры. Состояние экрана, UI-модели, объекты с Activity Context — в ActivityRetained/ViewModel скоупах. Глобальный кэш состояния экрана = утечки и «залипшее» UI.",
+      "tags": ["scopes"],
+      "difficulty": 0.5
+    },
+    {
+      "id": "hilt_029",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Что произойдёт, если забыть @Module и попросить Hilt дать Retrofit?",
+      "options": [
+        "Hilt создаст Retrofit сам",
+        "Ошибка компиляции: Hilt не знает, как создать тип, которого нет в графе (нет @Inject-конструктора и нет провайда)",
+        "Вернёт null",
+        "Создаст пустой Retrofit"
+      ],
+      "correctAnswer": "1",
+      "explanation": "У Hilt три способа получить тип: 1) @Inject-конструктор у класса; 2) @Provides/@Binds в модуле; 3) контекстные квалификаторы. Если нет ни одного — ошибка сборки с указанием типа. Это и есть сила компиляционной проверки графа.",
+      "tags": ["modules", "compile-time"],
+      "difficulty": 0.45
+    },
+    {
+      "id": "hilt_030",
+      "type": "MCQ",
+      "level": 3,
+      "text": "Какой паттерн внедрения зависимостей выбрать, если проект крошечный (1 экран, 2 зависимости)?",
+      "options": [
+        "Обязательно Hilt — это стандарт",
+        "Ручная передача через конструктор (или простой самописный контейнер): на маленьком проекте Hilt — over-engineering, конструкторная инъекция даёт ту же тестируемость без KSP-задержек",
+        "Koin с анимациями",
+        "Синглтоны object"
+      ],
+      "correctAnswer": "1",
+      "explanation": "Инженерный подход: инструмент — под задачу. class VM(private val repo = FakeRepo()) в тесте / RealRepo() в проде — уже DI. Hilt окупается, когда граф широк (десятки зависимостей, модули, команды). Главное — конструкторная инъекция как принцип, а фреймворк — как удобство.",
+      "tags": ["pragmatism", "di"],
+      "difficulty": 0.6
+    }
+  ]
+}

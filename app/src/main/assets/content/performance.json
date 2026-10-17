@@ -1,0 +1,456 @@
+{
+  "version": 1,
+  "topic": "performance",
+  "questions": [
+    {
+      "id": "perf_001",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Что такое jank в Android?",
+      "options": [
+        "Просадка FPS: кадры не успевают отрисоваться за 16.6 мс (60 FPS), пользователь видит рывки",
+        "Падение приложения",
+        "Ошибка компиляции",
+        "Медленная загрузка сети"
+      ],
+      "correctAnswer": "0",
+      "explanation": "При 60 FPS бюджет кадра — 16.6 мс (при 120 — 8.3 мс). Measure/layout/draw главного потока + RenderThread должны уложиться. Перерасход → пропущенные кадры (jank). Основные причины: тяжёлый main thread, сложная вёрстка, лишние рекомпозиции, большие изображения.",
+      "tags": ["jank", "basics"],
+      "difficulty": 0.3
+    },
+    {
+      "id": "perf_002",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Что такое StrictMode и зачем он включается в debug?",
+      "options": [
+        "Шифрование логов",
+        "Инструмент, детектирующий операции на главном потоке (диски, сеть, неявные транзакции) и утечки — падает/логирует в debug-сборке",
+        "Мониторинг батареи",
+        "Профайлер памяти"
+      ],
+      "correctAnswer": "1",
+      "explanation": "StrictMode.setThreadPolicy — detectDiskReads/Networks/Writes + penaltyLog/penaltyDeathOnNetwork. detectVmPolicy — ловит утечки (LeakDetector), медленные вызовы. Включается только в debug (BuildConfig.DEBUG), чтобы прод-пользователи не страдали.",
+      "tags": ["strictmode", "tooling"],
+      "difficulty": 0.5
+    },
+    {
+      "id": "perf_003",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Где измерять время выполнения кода в Android?",
+      "options": [
+        "System.currentTimeMillis везде",
+        "android.os.SystemClock (монотонные uptimeMillis/elapsedRealtime) или Kotlin measureTimeMillis/nanoTime; для профилирования — Android Studio Profiler",
+        "new Date()",
+        "Calendar.getInstance"
+      ],
+      "correctAnswer": "1",
+      "explanation": "currentTimeMillis может измениться пользователем/системой (NTP) — для интервалов непригоден. SystemClock.uptimeMillis — монотонный, не считая deep sleep; elapsedRealtime — включая deep sleep (для «сколько прошло реального времени»). measureTimeMillis — лаконичная Kotlin-обёртка.",
+      "tags": ["measurement"],
+      "difficulty": 0.45
+    },
+    {
+      "id": "perf_004",
+      "type": "MCQ",
+      "level": 3,
+      "text": "Что такое Baseline Profile?",
+      "options": [
+        "Профиль батареи",
+        "Предкомпилированный набор критических путей (AOT) для ART: снижает cold start и jank в горячих сценариях, генерируется baselineprofile-плагином/ macrobenchmark",
+        "Профиль сети",
+        "Настройка темы"
+      ],
+      "correctAnswer": "1",
+      "explanation": "ART по умолчанию JIT; Baseline Profile указывает, какие методы/классы AOT-скомпилировать заранее. На практике: +20-30% к cold start. Генерация — androidx.benchmark.macro.junit4, в Gradle module baselineprofile. Профили можно и генерировать из Play Cloud (play-to-install).",
+      "tags": ["baseline-profile", "startup"],
+      "difficulty": 0.75
+    },
+    {
+      "id": "perf_005",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Что делать, если в Compose-экране при каждом нажатии кнопки перерисовывается весь экран?",
+      "options": [
+        "Ничего — это нормально",
+        "Профилировать (Layout Inspector recomposition counts): вынести состояние ближе, использовать derivedStateOf, стабилизировать параметры (data class/ImmutableList), разбить на мелкие composable",
+        "Увеличить размер шрифта",
+        "Отключить рекомпозицию"
+      ],
+      "correctAnswer": "1",
+      "explanation": "Приёмы: 1) читать state ближе к leaf-узлам; 2) state hoisting — не тащить огромный state через все уровни; 3) derivedStateOf для производных значений; 4) стабильные типы (equals/Immutable); 5) remember дорогостоящих вычислений/модификаторов; 6) key для Lazy-списков.",
+      "tags": ["compose", "recomposition"],
+      "difficulty": 0.55
+    },
+    {
+      "id": "perf_006",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Как оптимизировать изображения в Android-приложении?",
+      "options": [
+        "Всегда грузить оригинал",
+        "Использовать сжатие, downscaling под целевой ImageView, кэширование (Coil/Glide), форматы WebP/AVIF, ленивую загрузку",
+        "Хранить в базе",
+        "Переводить в PNG"
+      ],
+      "correctAnswer": "1",
+      "explanation": "Память ImageView = width*height*4 байта (ARGB_8888). Загрузка 4000×3000 под 200×150 — пустая трата. Coil/Glide делают downsample, кэш (memory+disk), placeholder. WebP сжимает на 25-35% без потерь качества vs PNG. Для списков — обязательно ленивые загрузчики с переиспользованием.",
+      "tags": ["images", "memory"],
+      "difficulty": 0.5
+    },
+    {
+      "id": "perf_007",
+      "type": "MCQ",
+      "level": 3,
+      "text": "Что такое memory pressure и как приложение должно на неё реагировать?",
+      "options": [
+        "Давление памяти: система приближается к убийству процессов; приложение должно освобождать кэши (onTrimMemory), уменьшать пулы, избегать удержания больших битмапов",
+        "Давление на процессор",
+        "Ошибка OOM всегда",
+        "Напряжение сети"
+      ],
+      "correctAnswer": "0",
+      "explanation": "onTrimMemory(level) / ComponentCallbacks2: TRIM_MEMORY_RUNNING_LOW, UI_HIDDEN, BACKGROUND и т.д. Уровень говорит, насколько жалко память. Реакция: чистить LruCache, сбрасывать кэши изображений, уменьшать размер пулов. Полное OOM-падение — крайний случай; LMK убивает раньше.",
+      "tags": ["memory"],
+      "difficulty": 0.7
+    },
+    {
+      "id": "perf_008",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Чем аллокации в цикле опасны для производительности?",
+      "options": [
+        "Ничем",
+        "Каждая аллокация — работа GC; массовые temporary-объекты в цикле вызывают частые GC-паузы, заметные как jank",
+        "Они ломают типизацию",
+        "Они блокируют поток"
+      ],
+      "correctAnswer": "1",
+      "explanation": "GC-цикл в молодом поколении дёшев, но частые паузы складываются. Приёмы: избегать аллокаций в onDraw/measure, переиспользовать объекты (пул), использовать primitive-обёртки осознанно, object pools для частых transient-объектов (в Compose это решено композицией слотов).",
+      "tags": ["memory", "gc"],
+      "difficulty": 0.5
+    },
+    {
+      "id": "perf_009",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Как ускорить cold start приложения?",
+      "options": [
+        "Добавить splash-задержку",
+        "Baseline Profile, ленивая инициализация (не создавать тяжёлые SDK в onCreate), синхронная минимальная отрисовка первого экрана, профилирование Application.onCreate",
+        "Отключить тёмную тему",
+        "Увеличить heap"
+      ],
+      "correctAnswer": "1",
+      "explanation": "Cold start = process start + Application init + Activity create + первый кадр. Типичные тяжести: Hilt-граф, аналитика, сеть в onCreate. Приёмы: SplashScreen API (системный), Baseline Profile, отложенная инициализация (App Startup или ручной lazy), отсутствие сети до первого кадра.",
+      "tags": ["startup"],
+      "difficulty": 0.6
+    },
+    {
+      "id": "perf_010",
+      "type": "MCQ",
+      "level": 3,
+      "text": "Что такое Macrobenchmark vs Microbenchmark?",
+      "options": [
+        "Одинаковые инструменты",
+        "Macrobenchmark — целостные сценарии на устройстве (cold start, scroll frame timing); Microbenchmark — замер кусков кода (функции) внутри процесса с точностью до наносекунд",
+        "Micro для UI",
+        "Macro работает без устройства"
+      ],
+      "correctAnswer": "1",
+      "explanation": "Macrobenchmark (androidx.benchmark.macro) — компилирует отдельное приложение-инструмент, измеряет кадры/старт на реальном устройстве/эмуляторе. Microbenchmark — библиотека для @Benchmark-функций, калибрует частоту CPU, замеряет hot-path (алгоритмы, парсинг). Оба — в CI по необходимости.",
+      "tags": ["benchmark", "tooling"],
+      "difficulty": 0.8
+    },
+    {
+      "id": "perf_011",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Почему Room-запросы нельзя выполнять на главном потоке?",
+      "options": [
+        "Компилятор запрещает",
+        "Синхронный доступ к диску блокирует главный поток: UI замирает (jank/ANR), пока SQLite выполняет запрос",
+        "Room не поддерживает главный поток",
+        "Запросы в главном быстрее"
+      ],
+      "correctAnswer": "1",
+      "explanation": "SQLite — файл на flash-накопителе; чтение/запись/индексация занимают миллисекунды (и более на больших таблицах). В главном потоке это кадры. Room запрещает main-thread по умолчанию; suspend/Flow диспатчатся автоматически. allowMainThreadQueries — дебаг-костыль.",
+      "tags": ["room", "threads"],
+      "difficulty": 0.45
+    },
+    {
+      "id": "perf_012",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Что такое overdraw и как с ним бороться?",
+      "options": [
+        "Чрезмерная отрисовка: пиксель красится несколько раз за кадр (слоистые фоны); борьба — убирать ненужные background, упрощать формы, GPU overdraw debugging",
+        "Недорисовка",
+        "Ошибка верстки",
+        "Переполнение буфера"
+      ],
+      "correctAnswer": "0",
+      "explanation": "Каждый слой background поверх другого — лишняя работа GPU. Включите Debug GPU overdraw: синий = 1 слой (норма), зелёный = 2, розовый/красный = 3+. Частые источники: тема + activity background + layout background + card background без реальной нужды.",
+      "tags": ["gpu", "rendering"],
+      "difficulty": 0.6
+    },
+    {
+      "id": "perf_013",
+      "type": "MCQ",
+      "level": 3,
+      "text": "Чем StateFlow может ухудшать производительность при неправильном использовании?",
+      "options": [
+        "Никак",
+        "Частые эмиты с объектами-обёртками без equals → лишние рекомпозиции; конвейеры без distinctUntilChanged/flatMapLatest → холостая работа",
+        "Он блокирует поток",
+        "Он тратит батарею сам по себе"
+      ],
+      "correctAnswer": "1",
+      "explanation": "StateFlow схлопывает дубликаты, но если каждое значение — новый объект без equals (data class без полей/костыльные копии), UI будет перерисовываться каждый раз. Также: search-конвейер без debounce/flatMapLatest шлёт устаревшие запросы — лишняя работа сети и CPU.",
+      "tags": ["flow", "compose"],
+      "difficulty": 0.7
+    },
+    {
+      "id": "perf_014",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Какие инструменты Android Studio используются для анализа производительности?",
+      "options": [
+        "Только Logcat",
+        "Android Profiler (CPU, Memory, Network, Energy), Layout Inspector (recomposition), Apk Analyzer, Macro/Microbenchmark, StrictMode, Perfetto",
+        "Только эмулятор",
+        "Только Firebase"
+      ],
+      "correctAnswer": "1",
+      "explanation": "Профилировщик: запись CPU-трейса (что в main thread), heap dump (утечки), network inspector. Layout Inspector — дерево + recomposition counts (Compose). Perfetto — системные трейсы (более глубоко). Apk Analyzer — размеры. Benchmarks — числа для регрессий.",
+      "tags": ["tooling"],
+      "difficulty": 0.5
+    },
+    {
+      "id": "perf_015",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Что такое object pool и где он уместен?",
+      "options": [
+        "Пул объектов для переиспользования вместо аллокации в горячих путях (частые transient-объекты: геометрия, кадры)",
+        "Пул Thread",
+        "Кэш сети",
+        "Механизм DI"
+      ],
+      "correctAnswer": "0",
+      "explanation": "Паттерн: заранее создать N объектов, брать/возвращать вместо new в цикле. Уместен в измеренных горячих местах (onDraw, анимации, игровые циклы). Осторожно: пул сам аллоцирует память; в Compose/Room это уже решено библиотеками.",
+      "tags": ["memory", "patterns"],
+      "difficulty": 0.6
+    },
+    {
+      "id": "perf_016",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Что быстрее: String + или StringBuilder в цикле?",
+      "options": [
+        "String +, он оптимизирован JVM",
+        "StringBuilder: String неизменяем, каждый + создаёт новый объект и копирует — в цикле это O(n²) аллокаций; StringBuilder мутирует буфер",
+        "Одинаково",
+        "StringBuffer быстрее всего"
+      ],
+      "correctAnswer": "1",
+      "explanation": "for (s in list) result += s — на каждой итерации новый String. StringBuilder (не потокобезопасный, быстрее StringBuffer) копирует в резерв один раз. Компилятор может улучшить конкатенацию в пределах одного выражения, но не в цикле.",
+      "tags": ["strings", "kotlin"],
+      "difficulty": 0.45
+    },
+    {
+      "id": "perf_017",
+      "type": "MCQ",
+      "level": 3,
+      "text": "Почему корутина на Dispatchers.Default предпочтительнее Thread для CPU-задач?",
+      "options": [
+        "Она быстрее всегда",
+        "Пул потоков переиспользуется (без аллокации Thread на задачу), стек приостанавливается, отмена встроена, Structured Concurrency предотвращает утечки",
+        "Thread нельзя использовать в Kotlin",
+        "Default работает в главном потоке"
+      ],
+      "correctAnswer": "1",
+      "explanation": "Создание Thread — дорогая операция (стек 512КБ+, системный вызов). Корутина — лёгкая логическая задача поверх пула. Для 1000 параллельных запросов — 1000 корутин на 8 потоках против 1000 нативных потоков. Плюс отмена и structured concurrency.",
+      "tags": ["coroutines", "threads"],
+      "difficulty": 0.55
+    },
+    {
+      "id": "perf_018",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Что делать с медленным JSON-парсингом большого файла?",
+      "options": [
+        "Парсить в главном — быстрее",
+        "Перенести в Dispatchers.Default, использовать streaming-парсер или маппинг без промежуточных копий, при необходимости — кэшировать результат",
+        "Конвертировать в XML",
+        "Разбить на потоки по одному объекту"
+      ],
+      "correctAnswer": "1",
+      "explanation": "kotlinx.serialization/moshi — CPU-bound → Default. Большие документы: streaming (JsonReader) вместо полной загрузки в DOM; избегать двойного маппинга (DTO → промежуточный → домен без нужды). Результат кэшировать в Room, чтобы не парсить при каждом старте.",
+      "tags": ["coroutines", "json"],
+      "difficulty": 0.5
+    },
+    {
+      "id": "perf_019",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Какие ограничения накладывает Doze на фоновые операции?",
+      "options": [
+        "Никаких",
+        "В Doze сеть недоступна, джобы/алармы откладываются до выхода из режима; приложения должны переживать задержки и не полагаться на точное время",
+        "Только GPS блокируется",
+        "Doze отключает батарею"
+      ],
+      "correctAnswer": "1",
+      "explanation": "Doze (экр. выкл., без движения) — maintenance windows, когда система даёт краткое окно. WorkManager умеет работать в этих окнах. Точные алармы (setExactAndAllowWhileIdle) требуют разрешения и всё равно урезаются. Проектируйте офлайн-first, показывайте статус синхронизации.",
+      "tags": ["background", "battery"],
+      "difficulty": 0.6
+    },
+    {
+      "id": "perf_020",
+      "type": "TRUE_FALSE",
+      "level": 1,
+      "text": "Главный поток отвечает только за UI, поэтому фоновая загрузка из сети напрямую в UI-потоке недопустима.",
+      "options": ["Верно", "Неверно"],
+      "correctAnswer": "0",
+      "explanation": "Main thread обрабатывает ввод, measure/layout/draw. Любая блокировка (сеть, диск, большие вычисления) → пропущенные кадры, при длительной блокировке — ANR. Правило: main = только работа с UI и лёгкая логика.",
+      "tags": ["threads", "anr"],
+      "difficulty": 0.25
+    },
+    {
+      "id": "perf_021",
+      "type": "TRUE_FALSE",
+      "level": 2,
+      "text": "object pools и избегание аллокаций в onDraw критичны для плавности анимаций.",
+      "options": ["Верно", "Неверно"],
+      "correctAnswer": "0",
+      "explanation": "onDraw вызывается каждый кадр; аллокация Paint/Rect/Path в нём — верный способ падать FPS из-за GC. Правило: создавать в конструкторе/view init, в onDraw — только переиспользовать и рисовать.",
+      "tags": ["rendering", "memory"],
+      "difficulty": 0.45
+    },
+    {
+      "id": "perf_022",
+      "type": "INPUT",
+      "level": 1,
+      "text": "Максимальный бюджет кадра при 60 FPS, в миллисекундах. Введите число.",
+      "options": null,
+      "correctAnswer": "16.6",
+      "explanation": "1000 мс / 60 кадров ≈ 16.6 мс на кадр (вся pipeline: input → animation → measure → layout → draw → GPU). При 90 FPS — 11.1 мс, при 120 — 8.3 мс. Превышение → пропущенные кадры (jank).",
+      "tags": ["jank"],
+      "difficulty": 0.25
+    },
+    {
+      "id": "perf_023",
+      "type": "INPUT",
+      "level": 2,
+      "text": "Монотонные часы Android (не зависят от смены времени системой) для измерения интервалов. Введите полное имя класса с методом uptimeMillis.",
+      "options": null,
+      "correctAnswer": "android.os.SystemClock",
+      "explanation": "SystemClock.uptimeMillis()/elapsedRealtime()/elapsedRealtimeNanos() — монотонные значения. Используйте их вместо System.currentTimeMillis для таймингов и таймаутов.",
+      "tags": ["measurement"],
+      "difficulty": 0.35
+    },
+    {
+      "id": "perf_024",
+      "type": "CARD",
+      "level": 2,
+      "text": "Назовите основные причины jank в Compose-приложении и способы диагностики.",
+      "options": null,
+      "correctAnswer": "Причины: лишние рекомпозиции, нестабильные параметры, тяжёлый код в composable, большие списки без key, частые эмиты StateFlow. Диагностика: Layout Inspector (recomposition counts), Android Profiler (CPU trace), Perfetto",
+      "explanation": "Пошагово: 1) включить recomposition counts в Layout Inspector — найти «горячие» composables; 2) посмотреть, какие параметры нестабильны (List, мутабельные классы) — стабилизировать или @Immutable; 3) вынести вычисления из тела composable (remember, ViewModel, Default dispatcher); 4) state — ближе к UI и data class с equals; 5) списки — key + фиксированный размер item; 6) профилировать CPU-трейс: что занимает main thread в кадре.",
+      "tags": ["compose", "jank"],
+      "difficulty": 0.6
+    },
+    {
+      "id": "perf_025",
+      "type": "CARD",
+      "level": 3,
+      "text": "Опишите чек-лист оптимизации cold start вашего приложения.",
+      "options": null,
+      "correctAnswer": "1) Замерить (Macrobenchmark/macrobenchmark cold start). 2) Профилировать Application.onCreate. 3) Отложить тяжёлые SDK. 4) Baseline Profile. 5) SplashScreen API. 6) Минимизировать сеть до первого кадра",
+      "explanation": "Развёрнуто: 1) Числа до/после — macrobenchmark (TimeToInitialDisplay/TimeToFullDisplay). 2) CPU-трейс показывает, кто ест время: Hilt, аналитика, десериализация, сеть. 3) Ленивая инициализация: тяжёлые SDK — по требованию или в App Startup с priority. 4) Baseline Profile — AOT критических путей (+20-30%). 5) SplashScreen API — системный экран вместо self-made splash. 6) Данные первого экрана — из кэша/Room мгновенно, фоновая дозагрузка.",
+      "tags": ["startup"],
+      "difficulty": 0.7
+    },
+    {
+      "id": "perf_026",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Что лучше для кэширования часто читаемых пар «ключ-значение» с асинхронным API?",
+      "options": [
+        "SharedPreferences",
+        "DataStore Preferences (async API на Flow/suspend, потокобезопасные транзакции, без неопределённого apply())",
+        "Глобальные переменные",
+        "Room"
+      ],
+      "correctAnswer": "1",
+      "explanation": "SharedPreferences синхронен (риск ANR при больших файлах) и имеет неявный момент записи (apply). DataStore — асинхронный, целостный (editor.apply ждёт), типобезопаснее через Kotlin-делегаты. Для структурированных связанных данных — Room.",
+      "tags": ["datastore"],
+      "difficulty": 0.45
+    },
+    {
+      "id": "perf_027",
+      "type": "MCQ",
+      "level": 3,
+      "text": "Что такое R8 и как он влияет на производительность/размер?",
+      "options": [
+        "Компилятор Kotlin",
+        "Оптимизатор release-сборки: tree shaking неиспользуемого кода, обфускация, минификация — уменьшает APK/AAB и может ускорять загрузку",
+        "Профайлер",
+        "Дебаггер"
+      ],
+      "correctAnswer": "1",
+      "explanation": "R8 (замена ProGuard) вырезает недостижимый код, сжимает имена, конвертирует некоторые паттерны. Важно: keep-правила для рефлексии (Room, Gson, kotlinx.serialization, Hilt) — иначе рантайм-краш. Включается в release по умолчанию в новых шаблонах AGP.",
+      "tags": ["r8", "release"],
+      "difficulty": 0.7
+    },
+    {
+      "id": "perf_028",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Как снизить нагрузку на батарею в приложении с фоновой синхронизацией?",
+      "options": [
+        "Опрос каждые 5 минут через Handler",
+        "Batching через WorkManager с сетевым ограничением, объединение запросов, избегание точных будильников, уменьшение пробуждений",
+        "Включить GPS постоянно",
+        "Держать foreground service"
+      ],
+      "correctAnswer": "1",
+      "explanation": "Радио (Wi-Fi/сеть) — один из главных потребителей: каждое пробуждение радио стоит энергии. Приёмы: батчинг (одно окно вместо десяти), WorkManager с NetworkType.CONNECTED/UNMETERED, объединение payload, отказ от polling в пользу push (FCM). Foreground service — только для реальной пользовательской ценности.",
+      "tags": ["battery", "background"],
+      "difficulty": 0.6
+    },
+    {
+      "id": "perf_029",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Что делать, если Android Studio Profiler показывает, что main thread занят вызовом SharedPreferences.getString в onDraw/onCreateView?",
+      "options": [
+        "Ничего — это быстро",
+        "Перенести чтение в DataStore/асинхронную загрузку, кэшировать значение в памяти после первого чтения; синхронные диск-операции в главном потоке — антипаттерн",
+        "Вызвать Thread.sleep",
+        "Отключить профилировщик"
+      ],
+      "correctAnswer": "1",
+      "explanation": "getString блокирует до диска. Миграция: DataStore (suspend), или первый асинхронный прогрев кэша, или (legacy) apply на фоне + чтение кэша. StrictMode как раз ловит такие вызовы в debug.",
+      "tags": ["datastore", "threads"],
+      "difficulty": 0.5
+    },
+    {
+      "id": "perf_030",
+      "type": "MCQ",
+      "level": 3,
+      "text": "Почему в release-сборке Log.d лучше убирать или оборачивать?",
+      "options": [
+        "Они не работают в release",
+        "Логи добавляют аллокации строк и I/O; в релизе их вырезают через R8 (assumenosideeffects) или заменяют на Timber с отключаемым уровнем",
+        "Они замедляют компилятор",
+        "Они шифруются"
+      ],
+      "correctAnswer": "1",
+      "explanation": "Каждый Log.d аллоцирует строку и пишет в logcat (системный вызов). В цикле — заметная нагрузка. Стандарт: Timber, в release — дерево без debug-уровня, плюс R8 rules: assumenosideeffects для android.util.Log. Это убирает и сам код из байткода.",
+      "tags": ["logging", "release"],
+      "difficulty": 0.65
+    }
+  ]
+}

@@ -1,0 +1,456 @@
+{
+  "version": 1,
+  "topic": "testing",
+  "questions": [
+    {
+      "id": "testing_001",
+      "type": "MCQ",
+      "level": 1,
+      "text": "Какие основные уровни тестирования бывают в Android?",
+      "options": [
+        "Unit-тесты (JVM, логика), инструментальные (на устройстве/эмуляторе: UI, Room, Android API) и e2e/сквозные сценарии",
+        "Только unit",
+        "Только UI",
+        "Только ручные"
+      ],
+      "correctAnswer": "0",
+      "explanation": "Unit — быстрые, бегут на JVM (мс), покрывают бизнес-логику/ViewModel/UseCase. Instrumented — на реальном Android: Room, Compose UI, взаимодействие с системой (секунды). E2E — полные пользовательские сценарии. Пирамида: много unit, меньше instrumented, ещё меньше e2e.",
+      "tags": ["levels", "basics"],
+      "difficulty": 0.2
+    },
+    {
+      "id": "testing_002",
+      "type": "MCQ",
+      "level": 1,
+      "text": "Что такое TDD (Test-Driven Development)?",
+      "options": [
+        "Тестирование в конце проекта",
+        "Подход: сначала пишется падающий тест, затем минимальный код, чтобы его пройти, затем рефакторинг (Red-Green-Refactor)",
+        "Только автоматические тесты",
+        "Отказ от ручного тестирования"
+      ],
+      "correctAnswer": "1",
+      "explanation": "Красный (тест падает — функционала нет) → зелёный (минимальный код проходит) → рефакторинг (улучшаем, не ломая тесты). Выгоды: покрытие с рождения, дизайн API под тестируемость, безопасные рефакторинги. TDD не отменяет ручную проверку UX.",
+      "tags": ["tdd"],
+      "difficulty": 0.35
+    },
+    {
+      "id": "testing_003",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Что такое Mockito/MockK и зачем нужны моки?",
+      "options": [
+        "Библиотеки логирования",
+        "Создание подделок зависимостей: мок контролирует поведение (verify вызовов, stubbing ответов), чтобы изолировать тестируемый объект",
+        "Фреймворк UI-тестов",
+        "Замена JUnit"
+      ],
+      "correctAnswer": "1",
+      "explanation": "Тестируем ViewModel с реальным репозиторием = медленно и предсказуемо. Мок QuestionsRepository отдаёт фикстурные данные и позволяет verify { repo.get(id) }. MockK — Kotlin-нативный (латентные лямбды, object mocking), Mockito — классика Java. В Kotlin-проектах чаще MockK.",
+      "tags": ["mocks"],
+      "difficulty": 0.4
+    },
+    {
+      "id": "testing_004",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Mock (мок) vs Fake — в чём разница?",
+      "options": [
+        "Одно и то же",
+        "Мок — подделка с programmable-поведением и verify; Fake — рабочая упрощённая реализация (in-memory репозиторий) без verify-магии",
+        "Fake быстрее мока в 2 раза",
+        "Мок нельзя использовать в Android"
+      ],
+      "correctAnswer": "1",
+      "explanation": "FakeInMemoryRepository: настоящий HashMap под капотом — «настоящий» упрощённый объект, удобен для интеграционных тестов и Hilt-подмены. Мок: объявляешь ожидаемое поведение в тесте. Философский спор: «fakes > mocks» (тесты устойчивее к рефакторингу), но verify полезен для контрактов.",
+      "tags": ["mocks", "test-doubles"],
+      "difficulty": 0.5
+    },
+    {
+      "id": "testing_005",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Как тестировать ViewModel с coroutine-кодом?",
+      "options": [
+        "Thread.sleep в тесте",
+        "runTest + TestDispatcher (StandardTestDispatcher/UnconfinedTestDispatcher): управляемый виртуальный час, advanceTimeBy/advanceUntilIdle — детерминизм без реального ожидания",
+        "Реальный delay(1000)",
+        "Тестировать нельзя"
+      ],
+      "correctAnswer": "1",
+      "explanation": "kotlinx-coroutines-test: в ViewModel передаёте dispatcher (если он принимается) или подменяете Dispatchers.Main через Dispatchers.setMain(testDispatcher). runTest управляет виртуальным временем: delay мгновенен, collect прогоняется advanceUntilIdle. Тесты детерминированы и быстрые.",
+      "tags": ["coroutines", "viewmodel"],
+      "difficulty": 0.55
+    },
+    {
+      "id": "testing_006",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Что такое InstantTaskExecutorRule и зачем он нужен?",
+      "options": [
+        "Ускоряет сеть",
+        "JUnit-правило для LiveData: заменяет main-thread executor на синхронный, чтобы observe/setValue работали в JVM-тестах без Android",
+        "Заменяет emulator",
+        "Для Room"
+      ],
+      "correctAnswer": "1",
+      "explanation": "LiveData.setValue должен вызываться в main thread — в JVM-тестах main отсутствует. Правило подменяет ArchTaskExecutor. Для StateFlow этот хак не нужен — тесты работают чисто на JVM. Устаревший инструмент для легаси с LiveData.",
+      "tags": ["livedata", "junit"],
+      "difficulty": 0.5
+    },
+    {
+      "id": "testing_007",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Как выглядит UI-тест Compose?",
+      "options": [
+        "Espresso findViewById",
+        "createComposeRule()/createAndroidComposeRule(), then: compose.onNodeWithText(\"...\").performClick(), onNodeWithTag(...).assertIsDisplayed()",
+        "Selenium",
+        "JUnit без правил"
+      ],
+      "correctAnswer": "1",
+      "explanation": "androidx.compose.ui.test: createComposeRule ставит ComposeView, ищет узлы по тексту/тегу/семантике, выполняет действия (click, scrollTo, performTextInput) и ассерты (assertTextEquals, assertIsSelected). Настройка: testOptions { unitTests.isIncludeAndroidResources = true }.",
+      "tags": ["compose", "ui-testing"],
+      "difficulty": 0.5
+    },
+    {
+      "id": "testing_008",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Как протестировать Room-запросы?",
+      "options": [
+        "На прод-базе",
+        "Инструментальный тест с in-memory базой (Room.inMemoryDatabaseBuilder) или AndroidJUnitRunner: DAO тестируется на реальном SQLite без файлов",
+        "Mock DAO",
+        "Только вручную"
+      ],
+      "correctAnswer": "1",
+      "explanation": "@RunWith(AndroidJUnit4::class) — in-memory database builder, тест: insert → query → assert. Миграции — MigrationTestHelper с экспортированными schema-JSON. In-memory не сохраняется между тестами — идеально для изоляции.",
+      "tags": ["room", "instrumented"],
+      "difficulty": 0.55
+    },
+    {
+      "id": "testing_009",
+      "type": "MCQ",
+      "level": 3,
+      "text": "Что такое Espresso в Android-тестах?",
+      "options": [
+        "Библиотека для инструментальных UI-тестов View-системы: onView(withId(...)).perform(click()) с автосинхронизацией через UI-поток/IdlingResource",
+        "Сеть-клиент",
+        "Для unit-тестов",
+        "Для Compose"
+      ],
+      "correctAnswer": "0",
+      "explanation": "Espresso синхронизирует с main-thread и анимациями (условно). Для долгих асинхронных операций — IdlingResource. У Compose есть свой тест-DSL; Espresso остаётся для View/XML-экранов и гибридных приложений. UIAutomator — для системных экранов и чужих приложений.",
+      "tags": ["espresso", "ui-testing"],
+      "difficulty": 0.65
+    },
+    {
+      "id": "testing_010",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Что такое Coverage (покрытие) и какие есть ловушки?",
+      "options": [
+        "Процент выполненных строк кода; ловушка: 100% покрытие ≠ отсутствие багов — можно покрыть строки, не проверяя поведение",
+        "Скорость тестов",
+        "Число моков",
+        "Размер APK"
+      ],
+      "correctAnswer": "0",
+      "explanation": "jacoco/kover меряют, какие строки выполнились. Ловушки: coverage тривиальных геттеров, отсутствие assert, «зелёный» тест, который ничего не проверяет. Цель — не процент, а проверка критичных путей (grade answer, миграции, сценарии ошибок).",
+      "tags": ["coverage"],
+      "difficulty": 0.45
+    },
+    {
+      "id": "testing_011",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Где должен лежать код моков/fake-репозиториев?",
+      "options": [
+        "В src/main, чтобы прод тоже видел",
+        "В test/ (JVM) или androidTest/ (instrumented), либо в отдельном testFixtures/модуле — но НИКОГДА не в main-артефакте",
+        "В assets",
+        "В Compose UI"
+      ],
+      "correctAnswer": "1",
+      "explanation": "Фейки и моки — тестовый классpath. В больших проектах — gradle-модуль :core:testing с testFixtures или отдельный sourceSet, чтобы переиспользовать между модулями. Основной артефакт приложения не должен тащить тестовые классы.",
+      "tags": ["structure"],
+      "difficulty": 0.45
+    },
+    {
+      "id": "testing_012",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Что такое Robolectric и когда он полезен?",
+      "options": [
+        "Эмулятор",
+        "Фреймворк, выполняющий instrumented-код на JVM через «теневую» реализацию Android-фреймворка — быстрее эмулятора, но с оговорками в точности",
+        "Аналог Espresso",
+        "Профайлер"
+      ],
+      "correctAnswer": "1",
+      "explanation": "Robolectric: тесты с аннотацией @RunWith(RobolectricTestRunner) бегут на JVM, предоставляют Context, ресурсы, Looper. Ускоряет CI без устройств. Минусы: неполная эмуляция (графика, некоторые API), медленнее чистых unit. Хорош для схемных тестов, не для точного UI.",
+      "tags": ["robolectric"],
+      "difficulty": 0.65
+    },
+    {
+      "id": "testing_013",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Что такое State Restoration Test и зачем он нужен?",
+      "options": [
+        "Тест восстановления после process death: сохранить состояние (recreate/save), пересоздать экран, убедиться, что UI восстановился",
+        "Тест базы",
+        "Тест сети",
+        "Тест батареи"
+      ],
+      "correctAnswer": "0",
+      "explanation": "Compose: composeStateRestorationTester { setContent(...); performSave(); performRestore(); }. Проверяет, что rememberSaveable/ViewModel/Bundle действительно сохраняют форму. Часто забываемый сценарий — источник багов «текст пропал после поворота».",
+      "tags": ["compose", "lifecycle"],
+      "difficulty": 0.65
+    },
+    {
+      "id": "testing_014",
+      "type": "MCQ",
+      "level": 3,
+      "text": "Как тестируется Flow во ViewModel?",
+      "options": [
+        "Только реальный Flow",
+        "collect в runTest с турбокомпаратором (Turbine) или вручную: эмиссии складываются в список, затем assert по последовательности состояний",
+        "Thread.sleep до завершения",
+        "Flow нельзя тестировать"
+      ],
+      "correctAnswer": "1",
+      "explanation": "app.cash.turbine: val job = backgroundScope.launch { vm.uiState.testIn(backgroundScope).awaitItem()... } или turbine.test { assertEquals(Loading, awaitItem()); assertEquals(Content, awaitItem()) }. Альтернатива — collector в лист + assert list == [Loading, Content].",
+      "tags": ["flow", "coroutines"],
+      "difficulty": 0.7
+    },
+    {
+      "id": "testing_015",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Что такое Snapshot Test (скриншот-тест)?",
+      "options": [
+        "Скриншот пользователя",
+        "Сравнение пиксельного рендера UI с эталонным изображением (папринг/снимок) — ловит визуальные регрессии",
+        "Тест памяти",
+        "Тест скорости"
+      ],
+      "correctAnswer": "1",
+      "explanation": "Инструменты: Paparazzi (JVM, быстрые, без устройства), Compose Preview Screenshot Testing. Рендерят composable в эталон и сравнивают с закоммиченным PNG. Полезно для дизайн-систем/карточек. Диффо-картинка помогает ревьюить изменения.",
+      "tags": ["screenshot", "ui-testing"],
+      "difficulty": 0.7
+    },
+    {
+      "id": "testing_016",
+      "type": "MCQ",
+      "level": 1,
+      "text": "Какие аннотации/классы использует JUnit4 в Kotlin-тестах?",
+      "options": [
+        "@Test, @Before, @After, @Rule, Assert.assertEquals",
+        "@Testng",
+        "@pytest",
+        "@spec"
+      ],
+      "correctAnswer": "0",
+      "explanation": "База: class с методами @Test; @Before/@After (на каждый тест), @BeforeClass/@AfterClass; @Rule для правил (TempDir, правило Hilt); org.junit.Assert.* или kotlin.test (assertEquals и др.). JUnit5 в Android поддерживается хуже из-за AGP — де-факто JUnit4.",
+      "tags": ["junit"],
+      "difficulty": 0.25
+    },
+    {
+      "id": "testing_017",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Что такое assertion и что делать, если тест падает без понятного сообщения?",
+      "options": [
+        "Остановить тестирование",
+        "Assertion — проверка ожидания (assertEquals/assertThat); при падении уточнять: сообщения в ассертах, given/when/then структура, отдельные мелкие тесты вместо одного большого",
+        "Увеличить timeout",
+        "Отключить CI"
+      ],
+      "correctAnswer": "1",
+      "explanation": "«expected 3 but was 2» без контекста — плохо. Пишите: assertEquals(expected = 2, actual = vm.state.value.score, message = \"score grows only on correct answers\"). Структурируйте: given (setup), when (действие), then (ожидание). Один тест — одно поведение.",
+      "tags": ["assertions"],
+      "difficulty": 0.45
+    },
+    {
+      "id": "testing_018",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Какие тесты стоит писать для Repository с Room и Retrofit?",
+      "options": [
+        "Только UI-тесты",
+        "Unit-тесты логики кэша с fake DAO+fake API; instrumented-тесты DAO на in-memory Room; маппинг DTO→domain — unit",
+        "Только e2e",
+        "Никакие — репозиторий простой"
+      ],
+      "correctAnswer": "1",
+      "explanation": "Репозиторий — про логику «откуда брать»: unit с in-memory fake (fallback на кэш при ошибке сети), verify вызова API, проверка маппингов. Сам SQL — instrumented DAO-тест. Миграции — MigrationTestHelper. Так покрываются все слои без хрупкого UI-теста на каждый чих.",
+      "tags": ["repository", "room"],
+      "difficulty": 0.55
+    },
+    {
+      "id": "testing_019",
+      "type": "MCQ",
+      "level": 3,
+      "text": "Что такое End-to-End (E2E) тест и каких проблем он создаёт?",
+      "options": [
+        "Сквозной сценарий от UI до бэкенда; проблемы: медленные, хрупкие (ломаются от правок UI), требуют устройств/бэкенда — держите их мало и на критичных путях",
+        "Unit-тест функции",
+        "Тест компиляции",
+        "Snapshot"
+      ],
+      "correctAnswer": "0",
+      "explanation": "E2E (регистрация → покупка) проверяет интеграцию по-настоящему, но стоит дорого и часто падает по косвенным причинам. Баланс: большинство проверок — unit/instrumented компонентов; E2E — smoke-набор критичных сценариев в CI на эмуляторах.",
+      "tags": ["e2e"],
+      "difficulty": 0.6
+    },
+    {
+      "id": "testing_020",
+      "type": "TRUE_FALSE",
+      "level": 1,
+      "text": "Unit-тесты Android-приложения бегут на JVM без эмулятора, если код не зависит от Android-классов.",
+      "options": ["Верно", "Неверно"],
+      "correctAnswer": "0",
+      "explanation": "src/test — JVM, миллисекунды. Зависимости вроде android.util.Log/Context рушат такие тесты (android.jar в unit-режиме по умолчанию бросает stub-исключения; есть mockable android jar). Дизайните код без Android-зависимостей в domain/логике — тогда unit-тесты бесплатны.",
+      "tags": ["unit", "basics"],
+      "difficulty": 0.3
+    },
+    {
+      "id": "testing_021",
+      "type": "TRUE_FALSE",
+      "level": 2,
+      "text": "Хороший unit-тест должен использовать реальный репозиторий с сетью для максимальной реалистичности.",
+      "options": ["Верно", "Неверно"],
+      "correctAnswer": "1",
+      "explanation": "Unit-тест изолирует модуль: реальная сеть добавляет flakiness (таймауты, доступность), замедляет и делает результат недетерминированным. Реалистичность — задача интеграционных/e2e-тестов; unit проверяет логику с управляемыми зависимостями.",
+      "tags": ["unit", "test-doubles"],
+      "difficulty": 0.45
+    },
+    {
+      "id": "testing_022",
+      "type": "INPUT",
+      "level": 1,
+      "text": "Библиотека для запуска unit-тестов на JVM в Android-проектах (стандарт де-факто). Введите её название.",
+      "options": null,
+      "correctAnswer": "JUnit",
+      "explanation": "JUnit4 — стандарт для src/test в AGP: @Test, @Rule, @Before. В build.gradle: testImplementation(libs.junit). В паре — MockK (моки), kotlinx-coroutines-test, Turbine, Truth/AssertJ для красивых ассертов.",
+      "tags": ["junit"],
+      "difficulty": 0.1
+    },
+    {
+      "id": "testing_023",
+      "type": "INPUT",
+      "level": 2,
+      "text": "Название Gradle-задачи (task) для запуска unit-тестов модуля app. Введите её (с двоеточием, как в Gradle).",
+      "options": null,
+      "correctAnswer": ":app:testDebugUnitTest",
+      "explanation": "Семейство: testDebugUnitTest / testReleaseUnitTest для unit; connectedDebugAndroidTest — instrumented на устройстве/эмуляторе. Рядом assembleDebug (сборка) и lint (статический анализ).",
+      "tags": ["gradle"],
+      "difficulty": 0.4
+    },
+    {
+      "id": "testing_024",
+      "type": "CARD",
+      "level": 2,
+      "text": "Опишите, как протестировать QuizViewModel с корутинами и StateFlow в unit-тесте.",
+      "options": null,
+      "correctAnswer": "runTest + TestDispatcher; fake-репозиторий; подписка на state через turbine или collect; advanceUntilIdle; assert последовательности состояний",
+      "explanation": "Скелет: class QuizViewModelTest { @Before fun setup() { Dispatchers.setMain(StandardTestDispatcher()) } @Test fun `correct answer increments score`() = runTest { val vm = QuizViewModel(FakeRepo(), StandardTestDispatcher()) vm.onEvent(AnswerSelected(1)) advanceUntilIdle() assertEquals(1, vm.state.value.score) } @After fun tearDown() { Dispatchers.resetMain() } }. Ключи: принимать dispatcher в VM-конструктор (или setMain), фейк-зависимость вместо сети/базы, виртуальное время (delay не ждёт реально), assert по фактическому UiState.",
+      "tags": ["viewmodel", "coroutines", "unit"],
+      "difficulty": 0.55
+    },
+    {
+      "id": "testing_025",
+      "type": "CARD",
+      "level": 3,
+      "text": "Сформулируйте стратегию тестирования для нашего приложения квизов (какие тесты на какие слои).",
+      "options": null,
+      "correctAnswer": "Unit: use cases (grade, SM-2), ViewModel (состояния), маппинги JSON→entity. Instrumented: DAO Room (in-memory), сидинг, миграции. Compose UI: ключевые сценарии (выбор ответа, результаты). E2E: smoke «пройти мини-квиз».",
+      "explanation": "Пирамида проекта: 1) Самые ценные unit — GradeAnswerUseCase (верные/неверные ответы, начисление), GetDueCardsUseCase (выборка due), QuizViewModel (переходы Loading→Content→Result, события), парсинг assets JSON (валидация схемы). 2) Instrumented — QuestionDao (insert/select/Flow-инвалидация), ContentSeeder (проверка, что после сида N вопросов), MigrationTestHelper. 3) Compose — настройка MaterialTheme + createComposeRule: клик по варианту → показ explanation; навигация к результатам. 4) CI: unit на каждый PR, instrumented — на merge/ночь. Стремитесь к детерминированности: fake-репозитории, турбовремя, без реальной сети.",
+      "tags": ["strategy"],
+      "difficulty": 0.65
+    },
+    {
+      "id": "testing_026",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Зачем в тестах используется @Before?",
+      "options": [
+        "Метод выполняется перед КАЖДЫМ @Test — общая подготовка (создание объекта, настройка диспетчера)",
+        "Перед всем классом один раз",
+        "После теста",
+        "Для очистки базы в проде"
+      ],
+      "correctAnswer": "0",
+      "explanation": "@Before — до каждого теста (изоляция, свежие объекты). @BeforeClass (static) — один раз на класс (дорогие ресурсы). @After — после каждого (сброс: Dispatchers.resetMain(), закрытие базы). Изоляция между тестами — фундамент стабильного CI.",
+      "tags": ["junit"],
+      "difficulty": 0.35
+    },
+    {
+      "id": "testing_027",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Что такое flaky-тесты и как с ними бороться?",
+      "options": [
+        "Медленные тесты",
+        "Нестабильные тесты, падающие без изменений кода; борьба: детерминизм (виртуальное время, фейки, без реальной сети/таймингов), изоляция, повторные запуски только как временная мера",
+        "Тесты, которые никто не запускает",
+        "Тесты с низким покрытием"
+      ],
+      "correctAnswer": "1",
+      "explanation": "Источники flakiness: Thread.sleep, реальная сеть, глобальное состояние между тестами, гонки на реальном времени, устройство под нагрузкой. Лекарство: runTest/advanceTimeBy, fake-источники, @Before-изоляция, in-memory DB. «Retry» в CI скрывает проблему — лечите причину.",
+      "tags": ["ci", "determinism"],
+      "difficulty": 0.55
+    },
+    {
+      "id": "testing_028",
+      "type": "MCQ",
+      "level": 3,
+      "text": "Как интегрировать запуск тестов в CI (например, GitHub Actions)?",
+      "options": [
+        "Запускать только на ноутбуке разработчика",
+        "Job со сборкой Gradle: ./gradlew testDebugUnitTest на каждый PR; instrumented — на эмуляторе (managed devices/Gradle Managed Devices) на merge или по расписанию; артефакты — отчёты/скриншоты падений",
+        "Только ручной запуск",
+        "CI не поддерживает Gradle"
+      ],
+      "correctAnswer": "1",
+      "explanation": "Практика: PR-gate — быстрые unit-тесты + lint + assemble; nightly/main — connected tests на Gradle Managed Devices (стабильные эмуляторы из Gradle); падения → скриншоты/логи как artifacts. Кэширование Gradle ускоряет прогоны в разы.",
+      "tags": ["ci"],
+      "difficulty": 0.65
+    },
+    {
+      "id": "testing_029",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Что лучше проверять ассертом equals для data class состояний?",
+      "options": [
+        "Референс (===)",
+        "Структурное равенство (==/equals) по всем полям: ожидаемый экземпляр UiState целиком — ловит регрессии во всех полях сразу",
+        "Только текст ошибки",
+        "Размер объекта"
+      ],
+      "correctAnswer": "1",
+      "explanation": "assertEquals(UiState(score = 1, index = 1), vm.state.value) — проверит каждое поле и даст понятный diff в отчёте. При этом StateFlow использует equals для схлопывания — тест и прод ходят одной логикой.",
+      "tags": ["assertions", "state"],
+      "difficulty": 0.4
+    },
+    {
+      "id": "testing_030",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Как тестировать JSON-парсер контента (assets/content/*.json)?",
+      "options": [
+        "Вручную открыть каждый файл",
+        "Unit-тест: читать каждый JSON из assets (в unit-тестах — через файловую систему модуля или test resources), десериализовать в модель, assert по количеству вопросов, уникальности id, наличию explanation",
+        "Только e2e",
+        "Парсер тестировать не нужно"
+      ],
+      "correctAnswer": "1",
+      "explanation": "Тест валидации контента: ContentSchemaTest проходит по всем content/*.json: 1) JSON валиден; 2) каждая модель соответствует схеме (type, correctAnswer для MCQ — индекс в пределах options); 3) id уникальны; 4) explanation не пуст. Это ловит ошибки редактуры контента до релиза.",
+      "tags": ["content", "unit"],
+      "difficulty": 0.5
+    }
+  ]
+}

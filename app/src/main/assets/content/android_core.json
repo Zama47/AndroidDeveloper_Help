@@ -1,0 +1,526 @@
+{
+  "version": 1,
+  "topic": "android_core",
+  "questions": [
+    {
+      "id": "core_001",
+      "type": "MCQ",
+      "level": 1,
+      "text": "Что такое Activity в Android?",
+      "options": [
+        "Один экран с пользовательским интерфейсом, управляющийся системой жизненного цикла",
+        "Фоновый поток",
+        "Компонент для фоновой работы без UI",
+        "Контейнер базы данных"
+      ],
+      "correctAnswer": "0",
+      "explanation": "Activity — точка взаимодействия с пользователем (экран), объявленная в манифесте. Система управляет её жизненным циклом (onCreate/onStart/onResume/...), а пользователь может возвращаться к ней через back stack. Тесно связана с Window и DecorView.",
+      "tags": ["activity", "basics"],
+      "difficulty": 0.15
+    },
+    {
+      "id": "core_002",
+      "type": "MCQ",
+      "level": 1,
+      "text": "Назовите правильный порядок основных колбэков жизненного цикла Activity при первом открытии.",
+      "options": [
+        "onStart → onCreate → onResume",
+        "onCreate → onStart → onResume",
+        "onResume → onCreate → onStart",
+        "onCreate → onResume → onStart"
+      ],
+      "correctAnswer": "1",
+      "explanation": "Первый запуск: onCreate (инициализация, setContentView) → onStart (видима) → onResume (интерактивна). Далее onStop/onPause/onDestroy. Важно: onCreate может вызываться повторно после process death — состояние восстанавливают через savedInstanceState/ViewModel.",
+      "tags": ["lifecycle"],
+      "difficulty": 0.2
+    },
+    {
+      "id": "core_003",
+      "type": "MCQ",
+      "level": 2,
+      "text": "В чём разница между onPause и onStop?",
+      "options": [
+        "Нет разницы",
+        "onPause — экран частично перекрыт (диалог поверх), activity ещё видна; onStop — полностью не видна (ушла на фон или перекрыта полноэкранным)",
+        "onStop вызывается первым",
+        "onPause вызывается только при закрытии"
+      ],
+      "correctAnswer": "1",
+      "explanation": "onPause: потеря фокуса — но Activity может оставаться видимой (полупрозрачный диалог). onStop: полностью скрыта. Освобождать тяжёлые ресурсы — в onStop; короткие паузы — в onPause. После onStop возможен onRestart → onStart → onResume.",
+      "tags": ["lifecycle"],
+      "difficulty": 0.35
+    },
+    {
+      "id": "core_004",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Что такое configuration change и как она влияет на Activity?",
+      "options": [
+        "Смена цвета темы",
+        "Пересоздание Activity при повороте/смене языка/размера экрана: onDestroy + onCreate, локальные поля теряются",
+        "Смена версии SDK",
+        "Переключение между приложениями"
+      ],
+      "correctAnswer": "1",
+      "explanation": "Поворот — config change: Activity уничтожается и создаётся заново (по умолчанию). Потеря: текст в полях, положение списка. Решения: onSaveInstanceState + восстановление, ViewModel (переживает поворот), rememberSaveable в Compose. Также android:configChanges в манифесте (редко, для особых случаев).",
+      "tags": ["lifecycle", "config-change"],
+      "difficulty": 0.4
+    },
+    {
+      "id": "core_005",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Чем process death отличается от configuration change?",
+      "options": [
+        "Ничем",
+        "Configuration change пересоздаёт Activity, но ViewModel живёт; process death убивает весь процесс — живут только данные из onSaveInstanceState (Bundle)",
+        "Process death не уничтожает Activity",
+        "ViewModel переживает process death"
+      ],
+      "correctAnswer": "1",
+      "explanation": "Три уровня переживания: remember (рекомпозиция) < rememberSaveable/Bundle (config change + death) < ViewModel (config change). ViewModel умирает при process death, поэтому критичные «продолжить с того же места» данные (текст формы) — в SavedStateHandle/Bundle, а не только в VM.",
+      "tags": ["lifecycle", "process-death"],
+      "difficulty": 0.5
+    },
+    {
+      "id": "core_006",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Что делает onSaveInstanceState?",
+      "options": [
+        "Сохраняет данные в базу",
+        "Кладёт локальное состояние в Bundle перед onDestroy (config change или process death); восстановление — onCreate(бандл) / onRestoreInstanceState",
+        "Сохраняет файл на диск",
+        "Вызывается при каждом onPause"
+      ],
+      "correctAnswer": "1",
+      "explanation": "onSaveInstanceState вызывается перед onStop при config change и перед убийством процесса (не при обычном back-finish). В Bundle кладут только лёгкие данные (Parcelable/primitive). В onCreate проверяют savedInstanceState != null для восстановления.",
+      "tags": ["lifecycle", "saved-state"],
+      "difficulty": 0.45
+    },
+    {
+      "id": "core_007",
+      "type": "MCQ",
+      "level": 1,
+      "text": "Что такое Fragment?",
+      "options": [
+        "Логическая часть экрана со своим жизненным циклом, переиспользуемая в разных Activity",
+        "Отдельное приложение",
+        "Тип SharedPreferences",
+        "Компонент фоновой службы"
+      ],
+      "correctAnswer": "0",
+      "explanation": "Fragment — переиспользуемая часть UI со своим lifecycle (onCreateView, onViewCreated), аргументами (Bundle) и своим back stack поведением. В Compose-проектах экраны — это часто композиции + Navigation, а Fragment остаётся для legacy/встраивания в существующие контейнеры.",
+      "tags": ["fragment", "basics"],
+      "difficulty": 0.2
+    },
+    {
+      "id": "core_008",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Какие типы Intent существуют?",
+      "options": [
+        "Только явные",
+        "Явные (explicit — указана целевая компонента) и неявные (implicit — ACTION + категория/данные, целевую выбирает система)",
+        "Только неявные",
+        "Команды и запросы"
+      ],
+      "correctAnswer": "1",
+      "explanation": "Explicit: Intent(this, DetailsActivity::class.java) + putExtra. Implicit: Intent(ACTION_VIEW, Uri.parse(\"https://...\")) — откроет браузер; фильтруется через intent-filter (action, category, data) в манифесте. Для Android 11+ package visibility нужны <queries> для запросов к чужим приложениям.",
+      "tags": ["intents"],
+      "difficulty": 0.4
+    },
+    {
+      "id": "core_009",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Что такое back stack в Android?",
+      "options": [
+        "Стек вызовов потока",
+        "Порядок экранов: системная кнопка «Назад» закрывает верхний Activity/фрагмент, возвращая к предыдущему",
+        "Очередь сообщений Handler",
+        "Список запущенных сервисов"
+      ],
+      "correctAnswer": "1",
+      "explanation": "Каждый startActivity кладёт Activity на стек задач (task). Back закрывает текущий (onDestroy) и раскрывает предыдущий. Со стеком работают флаги: FLAG_ACTIVITY_CLEAR_TOP, singleTop/singleTask launchMode, affordance «Up» в toolbar (навигация вверх по иерархии, а не назад).",
+      "tags": ["intents", "navigation"],
+      "difficulty": 0.4
+    },
+    {
+      "id": "core_010",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Какие разрешения бывают на Android (13+)?",
+      "options": [
+        "Только обычные",
+        "Обычные (normal — выдаются молча при установке) и runtime (dangerous — запрос в рантайме через Activity Result API)",
+        "Одно общее",
+        "Только signature"
+      ],
+      "correctAnswer": "1",
+      "explanation": "Normal (INTERNET, VIBRATE) — автоматически. Dangerous (камера, гео, уведомления POST_NOTIFICATIONS с 13) — запрос в рантайме: registerForActivityResult(RequestPermission()). Signature — только для одинаковых подписей. Ограничение на 1 раз: в манифесте / не в рантайме.",
+      "tags": ["permissions"],
+      "difficulty": 0.45
+    },
+    {
+      "id": "core_011",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Как правильно запрашивать runtime-разрешения в современном Android?",
+      "options": [
+        "onRequestPermissionsResult (устарело)",
+        "Activity Result API: registerForActivityResult(RequestPermission()) до старта диалога — колбэк с результатом",
+        "Через AlertDialog вручную",
+        "Через Threads"
+      ],
+      "correctAnswer": "1",
+      "explanation": "registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted -> ... } регистрируется ДО onCreate (как поле), вызывается launcher.launch(Manifest.permission.CAMERA). Замена onRequestPermissionsResult: типобезопасно, без request-кодов, работает во Fragment.",
+      "tags": ["permissions", "activity-result"],
+      "difficulty": 0.5
+    },
+    {
+      "id": "core_012",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Что такое Context и какие основные типы Context существуют?",
+      "options": [
+        "Один-единственный",
+        "Context — доступ к ресурсам/системе; основные: Application (процесс, без UI), Activity (окно, темы), Service (фон без UI)",
+        "Только Activity",
+        "Это класс-обёртка над манифестом"
+      ],
+      "correctAnswer": "1",
+      "explanation": "Application Context — глобальный, безопасен в синглтонах/репозиториях (не утекает). Activity Context — имеет тему/window, нужен для диалогов, Inflate, startActivity (с FLAG_ACTIVITY_NEW_TASK). Хранить Activity в долгоживущем объекте = утечка памяти.",
+      "tags": ["context"],
+      "difficulty": 0.4
+    },
+    {
+      "id": "core_013",
+      "type": "MCQ",
+      "level": 3,
+      "text": "Что такое Service и чем Foreground Service отличается от обычного?",
+      "options": [
+        "Оба одинаковы",
+        "Обычный Service может быть убит системой под давлением; Foreground Service показывает постоянное уведомление и имеет приоритет — системой не убивается при работе",
+        "Foreground работает в UI-потоке",
+        "Service — это Thread"
+      ],
+      "correctAnswer": "1",
+      "explanation": "Service — компонент без UI для долгой работы. startService/bindService. Foreground: startForeground(id, notification) + тип foregroundServiceType (mediaPlayback, location...) в манифесте; с Android 12+ ограничения запуска с фона. С 14 — обязательное указание типа и разрешения POST_NOTIFICATIONS.",
+      "tags": ["service"],
+      "difficulty": 0.55
+    },
+    {
+      "id": "core_014",
+      "type": "MCQ",
+      "level": 2,
+      "text": "В каких случаях в Android рекомендуют использовать WorkManager?",
+      "options": [
+        "Для UI-анимаций",
+        "Для гарантированно отложенных/повторяющихся фоновых задач, переживающих перезагрузку и выход приложения (синхронизация, отправка логов)",
+        "Вместо Activity",
+        "Для сетевых запросов в UI"
+      ],
+      "correctAnswer": "1",
+      "explanation": "WorkManager — гарантированный планировщик: JobScheduler (API 23+) + AlarmManager fallback. Переживает перезагрузку, соблюдает ограничения (батарея, сеть, idle). Одноразовая задача (OneTimeWorkRequest), период (PeriodicWorkRequest, минимум 15 мин), цепочки (enqueueUniqueWork).",
+      "tags": ["workmanager"],
+      "difficulty": 0.5
+    },
+    {
+      "id": "core_015",
+      "type": "MCQ",
+      "level": 3,
+      "text": "Что такое BroadcastReceiver?",
+      "options": [
+        "Компонент, реагирующий на системные/пользовательские broadcast-сообщения (ACTION_BOOT_COMPLETED, низкий заряд, кастомный action)",
+        "Приёмник Wi-Fi",
+        "Класс для Bluetooth",
+        "Тип Intent-фильтра"
+      ],
+      "correctAnswer": "0",
+      "explanation": "Context.registerReceiver (динамический — живёт с регистрацией) или манифест (статический, для событий вне приложения; ограничения с Android 8 на implicit). Ресивер работает в главном потоке до ~10 секунд — для долгих действений запускайте JobIntentService/WorkManager внутри onReceive.",
+      "tags": ["broadcast"],
+      "difficulty": 0.6
+    },
+    {
+      "id": "core_016",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Что такое Handler, Looper и MessageQueue?",
+      "options": [
+        "Сетевые классы",
+        "Механизм фоновых потоков",
+        "Механизм межпоточного обмена: Looper крутит бесконечный цикл чтения MessageQueue, Handler отправляет/обрабатывает сообщения и Runnable в потоке Looper (главный поток — main Looper)",
+        "Аналог ExecutorService"
+      ],
+      "correctAnswer": "2",
+      "explanation": "Looper.loop() — вечный цикл в главном потоке; Handler связывает сообщение с кодом в этом потоке (post/runOnUiThread). Отсюда ANR: если главный поток занят, очередь не обрабатывается. Современная замена корутинам/диспетчерам для большинства задач.",
+      "tags": ["handler", "threads"],
+      "difficulty": 0.5
+    },
+    {
+      "id": "core_017",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Чем ANR отличается от обычного лага (jank)?",
+      "options": [
+        "Одно и то же",
+        "ANR — Application Not Responding: главный поток заблокирован >5 сек (ввод) или >10 сек (broadcast), система показывает диалог и может убить процесс; jank — пропущенные кадры (просадка FPS), без краша",
+        "ANR — это краш Java",
+        "jank опаснее ANR"
+      ],
+      "correctAnswer": "1",
+      "explanation": "Jank = не успевает отрисовка (>16.6 мс кадр) — пользователь видит подтормаживания. ANR = полная блокировка main thread: input dispatching timeout 5s, broadcast 10s, Service 20s. Профилактика обоих: вся тяжёлая работа — из главного потока (корутины/диспетчеры).",
+      "tags": ["anr", "performance"],
+      "difficulty": 0.45
+    },
+    {
+      "id": "core_018",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Какие бывают основные типы Application-процессов на Android?",
+      "options": [
+        "Только foreground",
+        "Foreground (видно/играет), background (службы) и cached/empty (в памяти, могут быть убиты) — приоритет определяет, кого убьёт LMK первым",
+        "Два процесса",
+        "Процессы не ограничены"
+      ],
+      "correctAnswer": "1",
+      "explanation": "Low Memory Killer убивает по возрастанию приоритета (oom_adj): foreground > visible > service > cached. Отсюда правило: не полагаться на память процесса, сохранять состояние (SavedState), а фоновую работу — на WorkManager (переживает убийство).",
+      "tags": ["process", "lifecycle"],
+      "difficulty": 0.55
+    },
+    {
+      "id": "core_019",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Что такое ViewModel и для чего он предназначен (Android-контекст)?",
+      "options": [
+        "Класс-представление экрана с логикой",
+        "Объект, хранящий UI-данные, переживающий configuration change и умирающий с окончательным закрытием экрана — без ссылок на Context",
+        "Замена Activity",
+        "Кэш сети"
+      ],
+      "correctAnswer": "1",
+      "explanation": "ViewModel (androidx.lifecycle) живёт в ViewModelStore: при повороте НЕ уничтожается (onCleared не вызывается), при закрытии экрана — уничтожается. Внутри — viewModelScope для корутин. Не хранит Context/View — иначе утечка.",
+      "tags": ["viewmodel", "lifecycle"],
+      "difficulty": 0.35
+    },
+    {
+      "id": "core_020",
+      "type": "MCQ",
+      "level": 1,
+      "text": "Что находится в AndroidManifest.xml?",
+      "options": [
+        "Только имя пакета",
+        "Объявление компонентов (Activity, Service, Receiver, Provider), разрешений, intent-фильтров, иконки, minSdk и параметры сборки",
+        "Код приложения",
+        "Ресурсы изображений"
+      ],
+      "correctAnswer": "1",
+      "explanation": "Манифест — декларативное описание для системы: <uses-permission>, <application> (label, theme, icon), <activity> с intent-filter (LAUNCHER), <service>, <receiver>, <provider>, пакет/applicationId. С 8.0+ часть компонентов имеет ограничения (implicit broadcast, background limits).",
+      "tags": ["manifest", "basics"],
+      "difficulty": 0.2
+    },
+    {
+      "id": "core_021",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Что такое content:// URI и ContentProvider?",
+      "options": [
+        "Сетевой URL",
+        "Механизм предоставления данных другим приложениям: Provider экспортирует данные через content:// URI с контролем доступа (permissions, signatures)",
+        "Тип разрешения",
+        "Аналог Intent"
+      ],
+      "correctAnswer": "1",
+      "explanation": "ContentProvider — контракт доступа к данным (файлы, контакты, медиа) между процессами. Внутри — FileProvider (безопасная передача файлов через grantUriPermission вместо file://), MediaStore, календари. Запрос — через ContentResolver.query(uri, ...).",
+      "tags": ["provider"],
+      "difficulty": 0.55
+    },
+    {
+      "id": "core_022",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Как передать данные в другую Activity?",
+      "options": [
+        "Через глобальные статические поля",
+        "Через Intent с extras: putExtra (примитивы/String/Parcelable/Serializable) и get*Extra; для больших/частых данных — Room/единый источник истины",
+        "Через SharedPreferences",
+        "Через сокеты"
+      ],
+      "correctAnswer": "1",
+      "explanation": "Intent extras — лёгкие данные на один переход: intent.putExtra(\"id\", id), intent.getStringExtra(...). Parcelable — быстрый Android-механизм (в отличие от Serializable, reflection-based). Списки/объекты-состояние — не тащить через Intent: передавать id и читать из репозитория.",
+      "tags": ["intents"],
+      "difficulty": 0.4
+    },
+    {
+      "id": "core_023",
+      "type": "MCQ",
+      "level": 3,
+      "text": "Что такое утечка памяти (memory leak) в Android и типичный пример?",
+      "options": [
+        "Нехватка RAM",
+        "Ситуация, когда объект недостижим для GC, но на него есть ссылка: например, singleton хранит ссылку на Activity/Context — экран уничтожен, память занята",
+        "Утечка в сети",
+        "Ошибка кэша"
+      ],
+      "correctAnswer": "1",
+      "explanation": "GC убирает только недостижимые объекты. Singleton + activityContext — Activity недостижима, но живёт, т.к. ссылка из синглтона. Типичные виновники: статические ссылки на Context, неотписанные listener/корутины, Handler с сообщениями. Поиск: LeakCanary, heap dump в Android Studio.",
+      "tags": ["memory", "leaks"],
+      "difficulty": 0.5
+    },
+    {
+      "id": "core_024",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Что делает флаг FLAG_ACTIVITY_NEW_TASK?",
+      "options": [
+        "Открывает Activity в новой задаче (task), как если бы стартовали с лаунчера; обязателен при startActivity из Application/Service Context",
+        "Очищает back stack",
+        "Переводит в многопоточный режим",
+        "Открывает в другом приложении"
+      ],
+      "correctAnswer": "0",
+      "explanation": "Из не-Activity Context система требует NEW_TASK (иначе — исключение). С флагом CLEAR_TOP/SINGLE_TOP управляется, что будет со стеком. В Compose-навигации это обычно скрыто за NavController.",
+      "tags": ["intents"],
+      "difficulty": 0.5
+    },
+    {
+      "id": "core_025",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Как Android ограничивает фоновые операции (Doze, App Standby)?",
+      "options": [
+        "Никак",
+        "Doze (экран выключен, без движения) замораживает сети/алармы/джобы; App Standby — простой неиспользуемых приложений; точные а alarms требуют SCHEDULE_EXACT_ALARM",
+        "Только ограничение CPU",
+        "Ограничения только для игр"
+      ],
+      "correctAnswer": "1",
+      "explanation": "С 6.0/7.0 система экономит батарею: в Doze откладываются все некритичные задачи, сеть закрыта. Офлайн-приложения должны полагаться на WorkManager (он знает об ограничениях) и учитывать, что периодические джобы могут задержаться. Battery optimizations request — редкая привилегия для медиа/навигации.",
+      "tags": ["background", "battery"],
+      "difficulty": 0.6
+    },
+    {
+      "id": "core_026",
+      "type": "TRUE_FALSE",
+      "level": 1,
+      "text": "onCreate вызывается при каждом возврате на экран (после нажатия «Назад» на другой экран и возврата).",
+      "options": ["Верно", "Неверно"],
+      "correctAnswer": "1",
+      "explanation": "Возврат к экрану без его уничтожения — onStart + onResume (onRestart если был onStop). onCreate — только при первом создании или восстановлении после уничтожения. Путаница здесь — частая ошибка в ответах на собеседовании.",
+      "tags": ["lifecycle"],
+      "difficulty": 0.4
+    },
+    {
+      "id": "core_027",
+      "type": "TRUE_FALSE",
+      "level": 2,
+      "text": "Хранить Activity в поле ViewModel допустимо, если поле объявлено как weak reference.",
+      "options": ["Верно", "Неверно"],
+      "correctAnswer": "1",
+      "explanation": "WeakReference уменьшит время жизни утечки, но сам паттерн антипрагматичен: после config change ссылка станет null и код сломается. Правильно: ViewModel не знает про Activity вообще, а общается через состояние/события.",
+      "tags": ["viewmodel", "leaks"],
+      "difficulty": 0.5
+    },
+    {
+      "id": "core_028",
+      "type": "TRUE_FALSE",
+      "level": 3,
+      "text": "С Android 8.0 фоновый сервис можно запустить в любое время из BroadcastReceiver.",
+      "options": ["Верно", "Неверно"],
+      "correctAnswer": "1",
+      "explanation": "С 8.0 введены background execution limits: обычные сервисы с фона не стартуют, implicit broadcast из манифеста ограничены. Рекомендованный путь — WorkManager/JobScheduler; foreground service — только под реальную пользовательскую ценность с уведомлением.",
+      "tags": ["service", "background"],
+      "difficulty": 0.65
+    },
+    {
+      "id": "core_029",
+      "type": "INPUT",
+      "level": 1,
+      "text": "Название компонента Android, представляющего один экран с UI. Введите его.",
+      "options": null,
+      "correctAnswer": "Activity",
+      "explanation": "Activity — экран; его жизненный цикл управляет система. Альтернативные компоненты: Service (фон), BroadcastReceiver (события), ContentProvider (данные). В приложении Activity объявлена в манифесте и обычно содержит Fragment/Composable.",
+      "tags": ["activity", "basics"],
+      "difficulty": 0.1
+    },
+    {
+      "id": "core_030",
+      "type": "INPUT",
+      "level": 2,
+      "text": "Аббревиатура: Application Not Responding — состояние полной блокировки главного потока. Введите её.",
+      "options": null,
+      "correctAnswer": "ANR",
+      "explanation": "ANR возникает при блокировке main thread: input dispatching >5 сек, broadcast >10 сек, service >20 сек. Система показывает диалог «приложение не отвечает». Диагностика: /data/anr/traces, Android Studio Profiler, StrictMode.",
+      "tags": ["anr", "performance"],
+      "difficulty": 0.2
+    },
+    {
+      "id": "core_031",
+      "type": "CARD",
+      "level": 2,
+      "text": "Назовите три уровня переживания состояния на Android и что каждый выдерживает.",
+      "options": null,
+      "correctAnswer": "ViewModel — configuration change; rememberSaveable/Bundle (onSaveInstanceState, SavedStateHandle) — config change + process death; Room/файлы — всё, включая перезагрузку устройства",
+      "explanation": "Детально: ViewModel живёт между поворотами, умирает с экраном (onCleared). Bundle/instance state сохраняется системой в onSaveInstanceState и восстанавливается после process death — только лёгкие данные. Дисковые хранилища (Room, DataStore, файлы) — вечны для приложения. Что кладём куда: бизнес-состояние и загрузки → VM; мелкий UI-state (текст поля, таб) → SavedStateHandle/rememberSaveable; данные пользователя → Room.",
+      "tags": ["lifecycle", "state"],
+      "difficulty": 0.45
+    },
+    {
+      "id": "core_032",
+      "type": "CARD",
+      "level": 2,
+      "text": "Опишите, что происходит с Activity при повороте экрана (configuration change) по умолчанию.",
+      "options": null,
+      "correctAnswer": "onPause → onStop → onSaveInstanceState → onDestroy → onCreate(бандл) → onStart → onResume; ViewModel в это время продолжает жить",
+      "explanation": "Система: 1) вызывает onPause/onStop; 2) вызывает onSaveInstanceState (сохранение UI-состояния в Bundle); 3) onDestroy (активити умирает); 4) создаёт новую и вызывает onCreate(savedInstanceState) → onStart → onResume. Всё в локальных полях теряется (если не восстановили), ViewModel (в ViewModelStore, который НЕ уничтожается) — переживает. Отсюда паттерн: VM владеет данными, Activity только рендерит.",
+      "tags": ["lifecycle", "config-change"],
+      "difficulty": 0.5
+    },
+    {
+      "id": "core_033",
+      "type": "CARD",
+      "level": 3,
+      "text": "Как правильно выполнить долгую фоновую задачу, которая должна завершиться даже после закрытия приложения?",
+      "options": null,
+      "correctAnswer": "WorkManager: OneTimeWorkRequest/PeriodicWorkRequest с ограничениями (constraints) и уникальным именем; внутри worker'а — корутины",
+      "explanation": "Сравнение: корутина во ViewModel — умирает с экраном; Service — может быть убит, требует управления; foreground service — уведомление, для видимой долгой работы (навигация, запись). Для «отправить отчёт, синхронизировать» — WorkManager: гарантирует выполнение, переживает перезагрузку, умеет retry/backoff/цепочки/уникальность (enqueueUniqueWork с REPLACE/KEEP). Ограничения: сеть (NetworkType.CONNECTED), заряд, период — минимум 15 минут.",
+      "tags": ["workmanager", "background"],
+      "difficulty": 0.65
+    },
+    {
+      "id": "core_034",
+      "type": "MCQ",
+      "level": 2,
+      "text": "В чём разница между startService и bindService?",
+      "options": [
+        "Нет разницы",
+        "startService — независимое выполнение (живёт, пока stopSelf/kill), bindService — клиент-серверная связь с компонентом через IBinder и жизненным циклом клиента",
+        "bindService работает быстрее",
+        "startService создаёт поток"
+      ],
+      "correctAnswer": "1",
+      "explanation": "startService: fire-and-forget, сервис сам управляет временем жизни. bindService: возвращает Binder-прокси, сервис умирает, когда отвязались все клиенты (или делается start+bind гибрид). В modern Android часть функций переехала в WorkManager/корутины.",
+      "tags": ["service"],
+      "difficulty": 0.55
+    },
+    {
+      "id": "core_035",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Что такое Application class и зачем она нужна?",
+      "options": [
+        "Класс, представляющий всё приложение: создаётся ОДИН раз при старте процесса — точка глобальной инициализации (DI-граф, аналитика, логгер)",
+        "Класс главного экрана",
+        "Обёртка над Activity",
+        "Тестовый класс"
+      ],
+      "correctAnswer": "0",
+      "explanation": "android.app.Application (или подкласс) живёт всё время процесса: onCreate — место для @HiltAndroidApp, инициализации SDK. Объявляется в манифесте (android:name=\".App\"). Здесь уместен Application Context для глобальных ресурсов.",
+      "tags": ["application", "basics"],
+      "difficulty": 0.3
+    }
+  ]
+}

@@ -1,0 +1,569 @@
+{
+  "version": 1,
+  "topic": "compose",
+  "questions": [
+    {
+      "id": "compose_001",
+      "type": "MCQ",
+      "level": 1,
+      "text": "Что такое Jetpack Compose?",
+      "options": [
+        "Декларативный UI-фреймворк: вы описываете UI как функцию от состояния, а Compose сам перерисовывает изменившиеся части",
+        "Замена Activity",
+        "ORM для базы данных",
+        "Библиотека для анимаций XML"
+      ],
+      "correctAnswer": "0",
+      "explanation": "Compose — toolkit для построения UI на Kotlin: вместо императивных XML-разметок и findViewById вы пишете @Composable-функции. UI = f(state): изменилось состояние → Compose перерисовал затронутые композиции. Нет ViewHolder, адаптеров, биндингов.",
+      "tags": ["basics"],
+      "difficulty": 0.15
+    },
+    {
+      "id": "compose_002",
+      "type": "MCQ",
+      "level": 1,
+      "text": "Что делает аннотация @Composable?",
+      "options": [
+        "Помечает функцию, которую Compose может вызывать для построения UI; такая функция не может быть обычной (вызывается только из композиции)",
+        "Делает функцию потокобезопасной",
+        "Генерирует XML-разметку",
+        "Автоматически добавляет remember"
+      ],
+      "correctAnswer": "0",
+      "explanation": "@Composable — метка для компилятора Compose (Kotlin compiler plugin): функция получает особый режим вызова (композиционный вызов), не может использоваться вне UI-контекста, не может быть лямбдой по умолчанию с произвольным поведением и не поддерживает дженерики-вызовы как обычные.",
+      "tags": ["basics", "composition"],
+      "difficulty": 0.25
+    },
+    {
+      "id": "compose_003",
+      "type": "MCQ",
+      "level": 1,
+      "text": "Что такое recomposition?",
+      "options": [
+        "Перезапуск composable-функций при изменении состояния для обновления UI — без пересоздания всего дерева",
+        "Полная перерисовка экрана с нуля",
+        "Пересоздание Activity",
+        "Вызов onCreate повторно"
+      ],
+      "correctAnswer": "0",
+      "explanation": "Recomposition — перезапуск только тех composable, чьи входные данные (наблюдаемое состояние) изменились, с сохранением остального дерева (позиции в иерархии). Compose трекает, какие значения читались при прошлой композиции, и перезапускает только затронутые функции.",
+      "tags": ["recomposition", "composition"],
+      "difficulty": 0.3
+    },
+    {
+      "id": "compose_004",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Зачем нужна функция remember в Compose?",
+      "options": [
+        "Запоминает значение между рекомпозициями, пока не изменится ключ или не пересоздастся композиция",
+        "Кэширует изображения",
+        "Запоминает состояние Activity",
+        "Сохраняет данные в базу"
+      ],
+      "correctAnswer": "0",
+      "explanation": "Без remember каждая рекомпозиция пересоздавала бы значение (сбрасывала счётчик, скролл и т.д.). remember { mutableStateOf(0) } хранит состояние в слоте композиции. remember keys — для пересчёта при смене ключа: remember(id) { load(id) }.",
+      "tags": ["state", "remember"],
+      "difficulty": 0.35
+    },
+    {
+      "id": "compose_005",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Чем rememberMutableState (remember { mutableStateOf(x) }) отличается от обычного remember?",
+      "options": [
+        "Ничем",
+        "mutableStateOf создаёт observable-состояние: чтение value внутри композиции подписывает composable на изменения, Compose автоматически запускает рекомпозицию при присвоении",
+        "Оно работает только в ViewModel",
+        "Оно быстрее"
+      ],
+      "correctAnswer": "1",
+      "explanation": "Ключевой механизм Compose: snapshot-система. При чтении state.value в composable Compose регистрирует зависимость; при state.value = newValue помечает composable устаревшим → рекомпозиция. Присвоение можно делать из любого потока (snapshot apply), UI обновится.",
+      "tags": ["state"],
+      "difficulty": 0.45
+    },
+    {
+      "id": "compose_006",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Какой тип состояния выбрать для значения, которое читается в UI и изменяется оттуда же?",
+      "options": [
+        "var обычный",
+        "by remember { mutableStateOf(initial) } — делегат с удобным доступом",
+        "val без изменений",
+        "global var"
+      ],
+      "correctAnswer": "1",
+      "explanation": "mutableStateOf + delegate by: var count by remember { mutableStateOf(0) } — синтаксис как у обычной переменной. Правило hoisting: состояние держат как можно выше (или во ViewModel), передавая вниз value + onValueChanged (state hoisting).",
+      "tags": ["state", "hoisting"],
+      "difficulty": 0.4
+    },
+    {
+      "id": "compose_007",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Что такое state hoisting (подъём состояния)?",
+      "options": [
+        "Перенос состояния из composable ВЫШЕ по иерархии: компо-нент становится stateless — принимает состояние и колбэк",
+        "Поднятие состояния в SharedPreferences",
+        "Хранение состояния в static",
+        "Перенос состояния в XML"
+      ],
+      "correctAnswer": "0",
+      "explanation": "Hoisting: composable не хранит state, а принимает value: TextField(text, onTextChange). Преимущества: переиспользование, тестирование (можно подать любое состояние), единый источник истины (ViewModel). Правило: состояние настолько низко, насколько возможно, и только настолько высоко, сколько нужно для sharing.",
+      "tags": ["hoisting", "state"],
+      "difficulty": 0.45
+    },
+    {
+      "id": "compose_008",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Для чего нужен effect side LaunchedEffect?",
+      "options": [
+        "Выполняет suspend-код вроде загрузки данных при входе composable в композицию; отменяется при выходе или смене ключа",
+        "Запускает анимацию",
+        "Изменяет состояние автоматически",
+        "Создаёт эффект размытия фона"
+      ],
+      "correctAnswer": "0",
+      "explanation": "LaunchedEffect(key) { } — корутина в композиции: стартует при входе, отменяется при выходе/смене key. Классика: LaunchedEffect(Unit) { viewModel.load() } или LaunchedEffect(query) { debounce-поиск }. Для cleanup при уходе — DisposableEffect с onDispose.",
+      "tags": ["effects"],
+      "difficulty": 0.45
+    },
+    {
+      "id": "compose_009",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Чем DisposableEffect отличается от LaunchedEffect?",
+      "options": [
+        "Ничем",
+        "DisposableEffect требует onDispose для cleanup (отписка listener, закрытие ресурса) при смене ключа или выходе; LaunchedEffect — просто suspend-корутина",
+        "DisposableEffect работает быстрее",
+        "LaunchedEffect нельзя отменить"
+      ],
+      "correctAnswer": "1",
+      "explanation": "DisposableEffect(key) { ... return onDispose { } } — единственный способ гарантированно освободить ресурс: регистрируете broadcast-приёмник/LocationCallback, в onDispose — отписка. Без onDispose — ошибка компиляции. LaunchedEffect отменяет корутину, но не вызывает произвольный cleanup.",
+      "tags": ["effects"],
+      "difficulty": 0.5
+    },
+    {
+      "id": "compose_010",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Зачем нужен rememberUpdatedState?",
+      "options": [
+        "Обновляет State-значение, чтобы долгоживущий callback (например, в LaunchedEffect) видел СВЕЖИЕ значения, а не замороженные на момент запуска",
+        "Сохраняет состояние в диск",
+        "Запоминает последний текст",
+        "Кэширует composables"
+      ],
+      "correctAnswer": "0",
+      "explanation": "Проблема: LaunchedEffect(Unit) с колбэком захватил значение при запуске — оно устареет. rememberUpdatedState(newValue) оборачивает его в State, который обновляется при каждой рекомпозиции, а long-running effect читает .value уже актуальный. Паттерн: effect не перезапускаем, но данные свежие.",
+      "tags": ["effects", "state"],
+      "difficulty": 0.65
+    },
+    {
+      "id": "compose_011",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Что произойдёт, если создать mutableStateOf прямо в теле composable без remember?",
+      "options": [
+        "Ничего особенного",
+        "Состояние будет сбрасываться в initial при каждой рекомпозиции — UI «забудет» изменения",
+        "Компилятор: ошибка",
+        "Значение станет глобальным"
+      ],
+      "correctAnswer": "1",
+      "explanation": "Тело функции выполняется при каждой рекомпозиции: без remember объект mutableStateOf создаётся заново, value возвращается к начальному. Всё, что должно пережить рекомпозицию, оборачивается в remember (или живёт во ViewModel/ rememberSaveable).",
+      "tags": ["state", "remember"],
+      "difficulty": 0.4
+    },
+    {
+      "id": "compose_012",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Чем rememberSaveable отличается от remember?",
+      "options": [
+        "Ничем",
+        "Переживает пересоздание процесса/Activity (process death и поворот): значение сохраняется в Bundle через Saver",
+        "Сохраняет в базу Room",
+        "Работает только с числами"
+      ],
+      "correctAnswer": "1",
+      "explanation": "remember переживает только рекомпозицию, но НЕ гибель процесса (system kill) и пересоздание Activity — состояние пропадает. rememberSaveable кладёт значение в instance state Bundle. Автоматически работает для примитивов/Parcelable; для сложных — custom Saver.",
+      "tags": ["state", "remember-saveable"],
+      "difficulty": 0.5
+    },
+    {
+      "id": "compose_013",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Для чего в Compose используется Modifier?",
+      "options": [
+        "Параметр-конфигуратор: задаёт размер, отступы, клики, фон, порядок применения (left-to-right) — как атрибуты в XML",
+        "Модификатор доступа Kotlin",
+        "Аннотация для темы",
+        "Тип состояния"
+      ],
+      "correctAnswer": "0",
+      "explanation": "Modifier — декоративный конвейер, применяемый слева направо: padding(16).clickable { } означает «сначала отступ, потом кликабельная область ВНУТРИ отступа». clickable().padding(16) — клик по области с отступом снаружи. Порядок влияет на результат — частый источник багов.",
+      "tags": ["modifier"],
+      "difficulty": 0.4
+    },
+    {
+      "id": "compose_014",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Почему нельзя мутировать Modifier снаружи, и как его правильно переиспользовать?",
+      "options": [
+        "Modifier — immutable; общие модификаторы выносят в remember/константы, применяя в правильном порядке",
+        "Он mutable, но приватный",
+        "Его нельзя переиспользовать вообще",
+        "Он создаётся заново при каждом вызове по умолчанию"
+      ],
+      "correctAnswer": "0",
+      "explanation": "Modifier — неизменяемая цепочка (каждый вызов возвращает новый объект). Чтобы не аллоцировать на каждую композицию, общие комбинации кэшируют: val listModifier = Modifier.then(...) в remember или в параметре composable (внешний передаёт готовый).",
+      "tags": ["modifier"],
+      "difficulty": 0.55
+    },
+    {
+      "id": "compose_015",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Как в Compose отрисовывается список из 10 000 элементов?",
+      "options": [
+        "Column/LazyRow со всеми элементами сразу",
+        "LazyColumn/LazyRow — виртуализация: создаёт и переиспользует только видимые item'ы (по аналогии с RecyclerView)",
+        "HorizontalScrollView с column внутри",
+        "Один Canvas"
+      ],
+      "correctAnswer": "1",
+      "explanation": "LazyColumn создаёт item'ы по мере появления в viewport и переиспользует (по key). Обязательно указывайте key = { it.id } — тогда переиспользование и анимации корректны. LazyColumn несовместим с Column/verticalScroll внутри (вложенный scroll).",
+      "tags": ["lazy-lists"],
+      "difficulty": 0.35
+    },
+    {
+      "id": "compose_016",
+      "type": "MCQ",
+      "level": 3,
+      "text": "Зачем нужен параметр key в items() LazyColumn?",
+      "options": [
+        "Для сортировки",
+        "Чтобы Compose ассоциировал элемент с постоянным идентификатором: правильный reuse, анимации вставки/удаления, сохранение состояния элемента",
+        "Для фильтрации",
+        "Обязателен по типу"
+      ],
+      "correctAnswer": "1",
+      "explanation": "С key items(users, key = { it.id }) Compose понимает, «тот же ли» это элемент при переупорядочивании: без key все считаются одинаковыми по позиции → ломается состояние (например, текст в поле ввода прыгает на другой item).",
+      "tags": ["lazy-lists"],
+      "difficulty": 0.6
+    },
+    {
+      "id": "compose_017",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Что делает derivedStateOf?",
+      "options": [
+        "Создаёт производное состояние, пересчитываемое только при изменении источников — уменьшает число рекомпозиций",
+        "Клонирует состояние",
+        "Сохраняет derived-классы",
+        "Работает только с LiveData"
+      ],
+      "correctAnswer": "0",
+      "explanation": "Классика: shouldShowScrollToTop = remember { derivedStateOf { listState.firstVisibleItemIndex > 0 } }. Пока условие не меняется, рекомпозиций нет, хотя index меняется каждый пиксель скролла. Без derivedStateOf UI перерисовывался бы на каждый скролл-кадр.",
+      "tags": ["state", "performance"],
+      "difficulty": 0.65
+    },
+    {
+      "id": "compose_018",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Как правильно читать состояние из ViewModel в composable?",
+      "options": [
+        "val state = viewModel.state напрямую в теле функции",
+        "val state by viewModel.uiState.collectAsStateWithLifecycle() — превращает StateFlow в Compose State с учётом жизненного цикла",
+        "LaunchedEffect { viewModel.state }",
+        "DisposableEffect"
+      ],
+      "correctAnswer": "1",
+      "explanation": "collectAsState()/collectAsStateWithLifecycle() — мост StateFlow → State. collectAsStateWithLifecycle предпочтительнее: сбор прекращается в STOPPED (не обрабатываем события фоном). Обновление состояния — методом ViewModel, а не присвоением из UI.",
+      "tags": ["state", "viewmodel"],
+      "difficulty": 0.4
+    },
+    {
+      "id": "compose_019",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Для чего нужен @Stable или @Immutable?",
+      "options": [
+        "Помечают класс как стабильный/неизменяемый для компилятора Compose: он может оптимизировать пропуск рекомпозиции, зная, что тип не «скрыто» меняется",
+        "Сериализуют объект",
+        "Делают класс fast",
+        "Требуются всем composable"
+      ],
+      "correctAnswer": "0",
+      "explanation": "Compose считает параметры: если тип нестабилен (List, Map, мутабельные поля), он не может гарантировать неизменность и перестраховочно перезапускает composable. ImmutableList/авто-skip по equals снижают рекомпозиции. Kotlin 2.0 + compose compiler умеет выводить stability сам.",
+      "tags": ["stability", "performance"],
+      "difficulty": 0.7
+    },
+    {
+      "id": "compose_020",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Что такое androidx.compose.runtime.Composable-функция с modifier: Modifier = Modifier в параметрах?",
+      "options": [
+        "Обязательный модификатор доступа",
+        "Идиома: внешние модификаторы передаются первым параметром и применяются первыми, чтобы пользователь мог дополнять поведение",
+        "Защита от null",
+        "Параметр производительности"
+      ],
+      "correctAnswer": "1",
+      "explanation": "Конвенция API Compose: fun Item(modifier: Modifier = Modifier, title: String) — caller задаёт padding/clickable, внутри применяется переданный modifier ПЕРВЫМ, затем свои. Это сохраняет контроль над порядком и позволяет обернуть элемент снаружи.",
+      "tags": ["modifier", "api-design"],
+      "difficulty": 0.5
+    },
+    {
+      "id": "compose_021",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Как в Compose показывать диалог/шторку по состоянию?",
+      "options": [
+        "AlertDialog по if-условию: if (showDialog) { AlertDialog(...) } — состояние управляет наличием в композиции",
+        "Через DialogFragment только",
+        "setContentView",
+        "Handler.post"
+      ],
+      "correctAnswer": "0",
+      "explanation": "Compose описывает состояние декларативно: if (state.showDialog) AlertDialog(onDismissRequest = { state.showDialog = false }). Навигационные библиотеки (Compose Navigation) предоставляют rememberNavController и destinations; управление — через state/навигационный стек, а не императивный show().",
+      "tags": ["state", "navigation"],
+      "difficulty": 0.45
+    },
+    {
+      "id": "compose_022",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Что делает androidx.compose.ui.platform.LocalContext?",
+      "options": [
+        "Возвращает Context текущего Android-компонента (для Intent, toasts, ресурсов) внутри composable",
+        "Создаёт новый Context",
+        "Возвращает текущую тему",
+        "Хранит состояние"
+      ],
+      "correctAnswer": "0",
+      "explanation": "Compose-функции не имеют прямого Context. LocalContext.current — CompositionLocal с Activity/Context: нужен для startActivity(Intent),.getSystemService, доступа к ресурсам. Это исключение из правила «UI на чистом Kotlin» — используйте точечно.",
+      "tags": ["composition-local", "context"],
+      "difficulty": 0.4
+    },
+    {
+      "id": "compose_023",
+      "type": "MCQ",
+      "level": 3,
+      "text": "Что такое CompositionLocal?",
+      "options": [
+        "Глобальная переменная для всей композиции",
+        "Механизм «неявной передачи» данных сверху вниз (аналог context в React): типизированный провайдер, например LocalContext, MaterialTheme.localColors",
+        "Кэш изображений",
+        "Тип состояния"
+      ],
+      "correctAnswer": "1",
+      "explanation": "CompositionLocal.current — способ не прокидывать параметр через 10 уровней Composable. Провайдер создаётся staticCompositionLocalOf/compositionLocalOf, задаётся через CompositionLocalProvider, читается через .current. MaterialTheme использует его для colors/typography. Злоупотреблять не стоит — явные параметры прозрачнее.",
+      "tags": ["composition-local"],
+      "difficulty": 0.7
+    },
+    {
+      "id": "compose_024",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Что происходит при повороте экрана (configuration change) в Compose-приложении?",
+      "options": [
+        "Activity пересоздаётся; remember-состояние теряется, rememberSaveable — сохраняется через Bundle; состояние ViewModel переживает",
+        "Всё сбрасывается полностью",
+        "Compose не поддерживает поворот",
+        "Сохраняется всё, включая remember"
+      ],
+      "correctAnswer": "0",
+      "explanation": "Поворот = пересоздание Activity → новая композиция. remember живёт только внутри композиции → обнуляется. rememberSaveable кладёт в instance state → переживает. Надёжный паттерн: источник истины — ViewModel (переживает), UI — collectAsState, мелкие формы — rememberSaveable.",
+      "tags": ["state", "lifecycle"],
+      "difficulty": 0.45
+    },
+    {
+      "id": "compose_025",
+      "type": "MCQ",
+      "level": 1,
+      "text": "Какой Material-компонент используется в Compose для создания кнопки?",
+      "options": ["Button(onClick) { Text(...) }", "com.google.android.material.button", "ButtonCompat", "androidx.compose.Button.xml"],
+      "correctAnswer": "0",
+      "explanation": "Compose Material 3: Button, OutlinedButton, TextButton, FloatingActionButton, TextField, Card, Scaffold и т.д. — все декларативные функции с on* колбэками. Аналогов findViewById не существует, XML в проекте не нужно.",
+      "tags": ["material3", "basics"],
+      "difficulty": 0.15
+    },
+    {
+      "id": "compose_026",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Для чего нужен Scaffold в Material 3?",
+      "options": [
+        "Каркас экрана: задаёт структуру с topBar, bottomBar, FAB, snackbarHost — с учётом отступов под системные бары",
+        "Создаёт базу данных",
+        "Управляет навигацией",
+        "Верстает таблицы"
+      ],
+      "correctAnswer": "0",
+      "explanation": "Scaffold — контейнер для standard-элементов экрана. Он координирует padding (чтобы контент не залезал под статус-бар), размещает BottomBar и FAB, управляет SnackbarHost. Практически каждый экран приложения начинается с Scaffold.",
+      "tags": ["material3", "layout"],
+      "difficulty": 0.4
+    },
+    {
+      "id": "compose_027",
+      "type": "MCQ",
+      "level": 2,
+      "text": "В чём разница между Column и Row с Box?",
+      "options": [
+        "Нет разницы",
+        "Column размещает детей вертикально, Row — горизонтально, Box — поверх друг друга (как FrameLayout)",
+        "Box быстрее Column",
+        "Row поддерживает скролл, Column — нет"
+      ],
+      "correctAnswer": "1",
+      "explanation": "Базовые layout-функции: Column (вертикаль), Row (горизонталь), Box (наложение, Alignment), LazyColumn/LazyRow (виртуализированные списки). FrameLayout → Box, LinearLayout → Column/Row, ConstraintLayout → Layout/Modifier (или отдельная библиотека).",
+      "tags": ["layout"],
+      "difficulty": 0.25
+    },
+    {
+      "id": "compose_028",
+      "type": "MCQ",
+      "level": 3,
+      "text": "Что такое ConstraintLayout в Compose и когда он нужен?",
+      "options": [
+        "Всегда обязателен",
+        "Плоская сложная вёрстка с взаимными ограничениями; в Compose используется редко — чаще хватает Row/Column/Box, а он нужен для действительно сложных цепочек",
+        "Замена Scaffold",
+        "Только для анимаций"
+      ],
+      "correctAnswer": "1",
+      "explanation": "Compose-философия: вложенные Row/Column проще и быстрее для 90% случаев. ConstraintLayout (androidx.constraintlayout.compose) даёт createRefs + constrain { } для плоских сложных схем. Также есть SubcomposeLayout и custom Layout для особых случаев.",
+      "tags": ["layout"],
+      "difficulty": 0.65
+    },
+    {
+      "id": "compose_029",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Как обрабатывать нажатия в Compose?",
+      "options": [
+        "setOnClick в XML",
+        "Modifier.clickable { }, onClick у Button, pointerInput для сложных жестов (свайпы, драг)",
+        "OnTouchListener",
+        "Только через GestureDetector Java"
+      ],
+      "correctAnswer": "1",
+      "explanation": "Три уровня: onClick у Material-компонентов; Modifier.clickable/combinedClickable для любого узла (с indication/interactionSource); Modifier.pointerInput + detectTapGestures/detectDragGestures для произвольных жестов. Не забудьте semantics для TalkBack (onClick сам добавляет описание).",
+      "tags": ["input", "modifier"],
+      "difficulty": 0.4
+    },
+    {
+      "id": "compose_030",
+      "type": "MCQ",
+      "level": 3,
+      "text": "Зачем в Compose LaunchedEffect используется с ключом?",
+      "options": [
+        "Эффект бесполезен без ключа",
+        "Эффект (корутина) перезапускается при изменении ключа: LaunchedEffect(query) — старый отменяется, новый запускается с новым значением",
+        "Ключ задаёт приоритет",
+        "Он задаёт задержку"
+      ],
+      "correctAnswer": "1",
+      "explanation": "Ключ — это «дата-зависимость» эффекта. query изменился → отмена старой корутины, запуск новой (идиома для debounce-поиска). Без ключа (Unit) эффект живёт всю жизнь composable. Отмена автоматическая — structured concurrency в композиции.",
+      "tags": ["effects"],
+      "difficulty": 0.55
+    },
+    {
+      "id": "compose_031",
+      "type": "TRUE_FALSE",
+      "level": 1,
+      "text": "Composable-функцию можно вызывать из обычной (не-composable) функции Kotlin.",
+      "options": ["Верно", "Неверно"],
+      "correctAnswer": "1",
+      "explanation": "Вызов composable вне композиции — ошибка компиляции (нужен ComposableContext). Обратное верно: внутри composable можно вызывать обычные функции — это позволяет держать бизнес-логику чистой и тестируемой без Compose.",
+      "tags": ["composition", "basics"],
+      "difficulty": 0.3
+    },
+    {
+      "id": "compose_032",
+      "type": "TRUE_FALSE",
+      "level": 2,
+      "text": "Recomposition перезапускает ВСЕ composable-функции на экране при любом изменении состояния.",
+      "options": ["Верно", "Неверно"],
+      "correctAnswer": "1",
+      "explanation": "Compose перезапускает только функции, читавшие изменившееся состояние (skipping по параметрам и записанным чтениям). Поэтому важна стабильность параметров: нестабильный параметр (List) мешает skip и вызывает лишние перезапуски поддерева.",
+      "tags": ["recomposition", "performance"],
+      "difficulty": 0.45
+    },
+    {
+      "id": "compose_033",
+      "type": "TRUE_FALSE",
+      "level": 2,
+      "text": "Modifier.apply что-то мутирует — им нельзя пользоваться повторно.",
+      "options": ["Верно", "Неверно"],
+      "correctAnswer": "1",
+      "explanation": "Modifier immutable: каждый вызов (.padding, .clickable) возвращает НОВУЙ объект, исходный не меняется. Поэтому переиспользование одного и того же modifier в разных местах безопасно; аллокации снижают через remember/константы.",
+      "tags": ["modifier"],
+      "difficulty": 0.4
+    },
+    {
+      "id": "compose_034",
+      "type": "TRUE_FALSE",
+      "level": 3,
+      "text": "Состояние, созданное в remember, переживает поворот экрана (configuration change).",
+      "options": ["Верно", "Неверно"],
+      "correctAnswer": "1",
+      "explanation": "remember живёт в рамках одной композиции; поворот пересоздаёт Activity и композицию — состояние теряется. Для переживания поворота: rememberSaveable (Bundle) или ViewModel. Гибель процесса переживает только ViewModel-состояние, сохранённое через SavedStateHandle.",
+      "tags": ["state", "lifecycle"],
+      "difficulty": 0.5
+    },
+    {
+      "id": "compose_035",
+      "type": "INPUT",
+      "level": 1,
+      "text": "Как называется функция, запоминающая значение между рекомпозициями (создаёт слот в композиции)?",
+      "options": null,
+      "correctAnswer": "remember",
+      "explanation": "remember { ... } хранит результат вычисления в слоте композиции. remember(key) пересчитывается при смене ключа. Для состояния: remember { mutableStateOf(...) }; для переживания поворота: rememberSaveable.",
+      "tags": ["remember", "state"],
+      "difficulty": 0.1
+    },
+    {
+      "id": "compose_036",
+      "type": "INPUT",
+      "level": 2,
+      "text": "Функция, превращающая StateFlow во ViewModel в Compose State. Введите её имя с суффиксом (без скобок).",
+      "options": null,
+      "correctAnswer": "collectAsState",
+      "explanation": "collectAsState() или collectAsStateWithLifecycle() (из lifecycle-runtime-compose, предпочтительнее — останавливает сбор в onStop). Обе возвращают State<T>, доступный через делегат by в composable.",
+      "tags": ["state", "viewmodel"],
+      "difficulty": 0.2
+    },
+    {
+      "id": "compose_037",
+      "type": "CARD",
+      "level": 2,
+      "text": "Перечислите, чем remember отличается от rememberSaveable и от хранения состояния во ViewModel.",
+      "options": null,
+      "correctAnswer": "remember — только в рамках композиции; rememberSaveable — переживает пересоздание Activity (Bundle); ViewModel — переживает поворот, живёт дольше экрана",
+      "explanation": "remember: слот композиции, умирает при повороте/пересоздании. rememberSaveable: значение кладётся в savedInstanceState — переживает поворот и восстановление после process death, но не больше жизни Activity. ViewModel: переживает поворот, хранит сложное состояние/флоу, умирает при окончательном закрытии экрана. Эвристика: бизнес-данные и загрузки → ViewModel; мелкий UI-state формы → rememberSaveable; временный during-composition → remember.",
+      "tags": ["state", "lifecycle"],
+      "difficulty": 0.5
+    },
+    {
+      "id": "compose_038",
+      "type": "CARD",
+      "level": 3,
+      "text": "Что такое state hoisting и как выглядит на примере поля поиска?",
+      "options": null,
+      "correctAnswer": "Подъём состояния вверх: composable не владеет state, а принимает value + onValueChange, становясь stateless и переиспользуемым",
+      "explanation": "Плохо (stateful внутри): @Composable fun Search() { var q by remember { mutableStateOf(\"\") }; TextField(q, { q = it }) }. Хорошо (stateless): @Composable fun SearchBar(q: String, onQ: (String) -> Unit) { TextField(q, onQ) }, а состояние живёт выше (или во ViewModel: onQ = viewModel::onQueryChanged). Выигрыш: предсказуемый поток данных (один источник истины), тестируемость (подать любое состояние), переиспользование, отсутствие дублирования состояния.",
+      "tags": ["hoisting", "state"],
+      "difficulty": 0.6
+    }
+  ]
+}

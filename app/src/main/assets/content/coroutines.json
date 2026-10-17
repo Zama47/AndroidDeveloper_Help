@@ -1,0 +1,596 @@
+{
+  "version": 1,
+  "topic": "coroutines",
+  "questions": [
+    {
+      "id": "coroutines_001",
+      "type": "MCQ",
+      "level": 1,
+      "text": "Что такое корутина?",
+      "options": [
+        "Лёгкий поток, выполняемый поверх пула потоков, который может приостанавливаться и возобновляться без блокировки потока",
+        "Отдельный OS-поток",
+        "Специальный вид Intent",
+        "Класс для работы с базой данных"
+      ],
+      "correctAnswer": "0",
+      "explanation": "Корутина — это возобновляемая единица выполнения. В точке suspend выполнение приостанавливается, стек сохраняется, а поток освобождается для другой работы. Поэтому тысячи корутин живут на одном-нескольких потоках без блокировок.",
+      "tags": ["basics"],
+      "difficulty": 0.15
+    },
+    {
+      "id": "coroutines_002",
+      "type": "MCQ",
+      "level": 1,
+      "text": "Что делает функция launch { }?",
+      "options": [
+        "Запускает корутину и возвращает Job, не ожидая результата (Fire-and-forget)",
+        "Останавливает все корутины",
+        "Создаёт новый диспетчер",
+        "Блокирует текущий поток до завершения"
+      ],
+      "correctAnswer": "0",
+      "explanation": "launch возвращает Job (управление отменой) и результат Unit. async возвращает Deferred<T> с результатом. Обе не блокируют вызывающий поток. runBlocking — единственный блокирующий способ, нужен только в тестах и main().",
+      "tags": ["scope", "builders"],
+      "difficulty": 0.2
+    },
+    {
+      "id": "coroutines_003",
+      "type": "MCQ",
+      "level": 1,
+      "text": "Чем async { } отличается от launch { }?",
+      "options": [
+        "Ничем",
+        "async возвращает Deferred<T> — обёртку над результатом, к которому обращаются через await(); launch возвращает Job без результата",
+        "async работает только в UI",
+        "launch быстрее"
+      ],
+      "correctAnswer": "1",
+      "explanation": "Обе создают корутину. Разница в результате: async — Deferred, результат получают через await() (отложенный аналог Future). async используют, когда нужен результат (параллельные запросы), launch — когда нужен только эффект (лог, запись).",
+      "tags": ["builders", "async"],
+      "difficulty": 0.25
+    },
+    {
+      "id": "coroutines_004",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Что такое CoroutineScope?",
+      "options": [
+        "Область жизни корутин: набор дочерних Job; при отмене scope отменяются все дочерние корутины",
+        "Глобальный синглтон для всех корутин",
+        "Переменная окружения",
+        "Диспетчер по умолчанию"
+      ],
+      "correctAnswer": "0",
+      "explanation": "Scope задаёт контекст и иерархию: у каждой корутины есть родитель. Отмена родителя (scope.cancel()) отменяет детей. Правило: у каждой долгоживущей сущности (ViewModel, Service) свой scope; в Activity/Fragment — lifecycleScope, во ViewModel — viewModelScope.",
+      "tags": ["scope", "structured-concurrency"],
+      "difficulty": 0.4
+    },
+    {
+      "id": "coroutines_005",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Что такое structured concurrency (структурированная конкурентность)?",
+      "options": [
+        "Каждая корутина принадлежит scope-родителю; родитель ждёт завершения детей, отмена распространяется вниз по дереву — утечек и «сирот» не бывает",
+        "Порядок выполнения корутин строго последователен",
+        "Все корутины работают в одном потоке",
+        "Запрет на вложенные запуски"
+      ],
+      "correctAnswer": "0",
+      "explanation": "Главный принцип: запуск всегда происходит внутри scope, дочерние задачи привязаны к родителю. Scope завершается только после всех детей; отмена родителя отменяет детей; ошибка ребёнка в не-supervised scope всплывает и ломает родителя. Это гарантирует отсутствие висячих корутин.",
+      "tags": ["structured-concurrency", "scope"],
+      "difficulty": 0.5
+    },
+    {
+      "id": "coroutines_006",
+      "type": "MCQ",
+      "level": 1,
+      "text": "Какой dispatcher используется по умолчанию для корутин в Android ViewModel (viewModelScope)?",
+      "options": ["Dispatchers.Main", "Dispatchers.IO", "Dispatchers.Default", "Dispatchers.Unconfined"],
+      "correctAnswer": "0",
+      "explanation": "viewModelScope по умолчанию = SupervisorJob() + Dispatchers.Main.immediate. Логика ViewModel выполняется в главном потоке (обновление StateFlow безопасно), а тяжёлая работа вручную переносится в withContext(Dispatchers.IO/Default).",
+      "tags": ["dispatchers"],
+      "difficulty": 0.25
+    },
+    {
+      "id": "coroutines_007",
+      "type": "MCQ",
+      "level": 1,
+      "text": "Для чего предназначен Dispatchers.IO?",
+      "options": [
+        "Для операций ввода-вывода (сеть, диск, база) — пул до 64 потоков, разделяется с Default",
+        "Для тяжёлых вычислений",
+        "Для работы с UI",
+        "Для фонового планировщика AlarmManager"
+      ],
+      "correctAnswer": "0",
+      "explanation": "IO оптимизирован под блокирующие вызовы: большой пул потоков, растущий по необходимости. Default — пул размером с число ядер для CPU-bound задач (парсинг, сортировка). Main — главный поток Android. В Room/Suspend Retrofit уже встроены правильные диспетчеры, IO нужен для ручных блокирующих вызовов.",
+      "tags": ["dispatchers"],
+      "difficulty": 0.25
+    },
+    {
+      "id": "coroutines_008",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Для чего нужен Dispatchers.Default?",
+      "options": [
+        "Для CPU-bound задач: парсинг JSON, сортировка, вычисления — пул размером с количество ядер CPU",
+        "Для сетевых запросов",
+        "Для чтения файлов",
+        "Это диспетчер по умолчанию везде"
+      ],
+      "correctAnswer": "0",
+      "explanation": "Default ограничен числом ядер (лимит параллелизма = N CPU), чтобы тяжёлые вычисления не вытесняли друг друга. IO — для блокирующего ввода-вывода (64 потока), Main — UI. Неправильный выбор диспетчера — частая причина jank или медленных запросов.",
+      "tags": ["dispatchers"],
+      "difficulty": 0.4
+    },
+    {
+      "id": "coroutines_009",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Что произойдёт, если в корутине брошено необработанное исключение?",
+      "options": [
+        "Вернётся null",
+        "Исключение всплывает по дереву корутин: падает родительский scope (все дочерние корутины отменяются), а на Android — приложение (кроме Supervise-режима)",
+        "Корутина перезапустится автоматически",
+        "Исключение игнорируется"
+      ],
+      "correctAnswer": "1",
+      "explanation": "В обычном scope ошибка отменляет родителя и всех siblings, затем всплывает к CoroutineExceptionHandler или к Thread. supervisorScope/SupervisorJob ломают эту цепочку: дети падают независимо. В ViewModel ошибка убьёт viewModelScope → краш приложения, поэтому try/catch внутри важен.",
+      "tags": ["error-handling", "scope"],
+      "difficulty": 0.5
+    },
+    {
+      "id": "coroutines_010",
+      "type": "MCQ",
+      "level": 2,
+      "text": "В чём разница между Job.cancel() и coroutineContext.cancel()?",
+      "options": [
+        "Нет разницы",
+        "Job.cancel() отменяет эту задачу и её детей; scope.cancel() отменяет весь scope — все корутины внутри",
+        "Одна работает с UI, другая с базой",
+        "cancel() бросает исключение"
+      ],
+      "correctAnswer": "1",
+      "explanation": "Отмена идёт вниз по дереву. job.cancel() — точечная отмена (или CancellationException у текущей). context.cancel() (или scope.cancel()) — массовая отмена всего поддерева. Важно: отмена cooperative — long-running циклы должны проверять isActive или вызывать yield().",
+      "tags": ["cancellation"],
+      "difficulty": 0.45
+    },
+    {
+      "id": "coroutines_011",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Что такое cooperative cancellation и как в ней участвовать?",
+      "options": [
+        "Отмена происходит мгновенно в любой точке кода автоматически",
+        "Корутина сама должна проверять отмену: isActive, ensureActive(), yield() или вызывать suspend-функции; иначе infinite loop не остановится",
+        "Нужно вызывать Thread.interrupt()",
+        "Отмена работает только через job.cancelAndJoin()"
+      ],
+      "correctAnswer": "1",
+      "explanation": "cancel() лишь ставит флаг. Длинные циклы обязаны его читать: for (i in ...) { ensureActive(); work() }. yield() — точка, где корутина может быть отменена и отдаёт поток. suspend-функции (delay, withContext) отменяются сами, бросая CancellationException.",
+      "tags": ["cancellation"],
+      "difficulty": 0.5
+    },
+    {
+      "id": "coroutines_012",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Можно ли ловить CancellationException через try/catch и продолжать работу?",
+      "options": [
+        "Да, это рекомендуемый паттерн",
+        "Нет, его нельзя поймать",
+        "Поймать можно, но потом обязательно пробросить дальше (rethrow) — иначе ломается механизм отмены; в finally нельзя вызывать suspend",
+        "Он никогда не бросается"
+      ],
+      "correctAnswer": "2",
+      "explanation": "CancellationException — не ошибка, а сигнал отмены. Поймали — должны пробросить (или вернуть). Если проглотить, корутина продолжит работу после отмены. В finally suspend-функции нельзя вызывать (исключение повторно); для cleanup — NonCancellable scope.",
+      "tags": ["cancellation", "error-handling"],
+      "difficulty": 0.6
+    },
+    {
+      "id": "coroutines_013",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Что делает withContext(Dispatchers.IO) { ... }?",
+      "options": [
+        "Создаёт новую корутину параллельно с текущей",
+        "Выполняет блок в указанном контексте, ОЖИДАЯ завершения, и возвращает результат — текущая корутина приостанавливается",
+        "Меняет диспетчер навсегда",
+        "Запускает поток"
+      ],
+      "correctAnswer": "1",
+      "explanation": "withContext — это suspend-функция: переключение контекста без создания новой логической корутины, всё в рамках той же. Когда блок завершается, контекст восстанавливается автоматически. Идеальный способ «сделать тяжёлую работу тут, а UI — обратно в Main».",
+      "tags": ["context", "dispatchers"],
+      "difficulty": 0.4
+    },
+    {
+      "id": "coroutines_014",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Чем coroutineContext в корутине отличается от CoroutineScope?",
+      "options": [
+        "Это одно и то же",
+        "Scope = контекст + extension receiver: у scope есть свой context (Job, dispatcher), но и у самой корутины есть context; не путать scope и контекст текущей корутины",
+        "Context — только для UI",
+        "Scope всегда содержит Job, context — никогда"
+      ],
+      "correctAnswer": "1",
+      "explanation": "CoroutineScope — интерфейс с полем context (обычно Job + dispatcher). Внутри suspend-функции coroutineContext — контекст СЕЙЧАШНЕЙ корутины. CoroutineScope(context) — способ «войти» в существующий scope. Launch наследует контекст scope-получателя.",
+      "tags": ["context", "scope"],
+      "difficulty": 0.55
+    },
+    {
+      "id": "coroutines_015",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Что такое SupervisorJob и чем он отличается от Job?",
+      "options": [
+        "Ничем",
+        "При ошибке ребёнка отмена НЕ распространяется на siblings и родителя — дети изолированы друг от друга",
+        "SupervisorJob работает быстрее",
+        "SupervisorJob запрещает вложенные запуски"
+      ],
+      "correctAnswer": "1",
+      "explanation": "Обычный Job: ошибка одного ребёнка отменяет всех остальных (fail-fast). SupervisorJob: дети независимы, ошибка одного не трогает других — нужен каждый свой CoroutineExceptionHandler. Именно SupervisorJob в lifecycleScope/viewModelScope. Существует supervisorScope { } для изолированного участка.",
+      "tags": ["error-handling", "job"],
+      "difficulty": 0.5
+    },
+    {
+      "id": "coroutines_016",
+      "type": "MCQ",
+      "level": 1,
+      "text": "Что делает delay(1000) в корутине?",
+      "options": [
+        "Блокирует поток на 1 секунду",
+        "Асинхронно приостанавливает корутину на 1 секунду, НЕ блокируя поток; пробрасывает CancellationException при отмене",
+        "Ждёт в цикле while",
+        "Запускает таймер AlarmManager"
+      ],
+      "correctAnswer": "1",
+      "explanation": "delay — suspend-функция: отдаёт поток другим задачам и возобновляет корутину через указанный интервал. Это кооперативная точка отмены. Аналог Thread.sleep блокирует поток и недоступен (или опасен) в главном потоке.",
+      "tags": ["basics", "cancellation"],
+      "difficulty": 0.2
+    },
+    {
+      "id": "coroutines_017",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Для чего нужен runBlocking?",
+      "options": [
+        "Основной способ запуска корутин в Android",
+        "Мост между блокирующим и неблокирующим кодом: блокирует текущий поток до завершения корутины — только для tests и fun main()",
+        "Запускает корутину в фоне",
+        "Делает функцию suspend"
+      ],
+      "correctAnswer": "1",
+      "explanation": "runBlocking создаёт event loop и блокирует вызывающий поток. В продакшен-коде Android его быть не должно (вместо него lifecycleScope/viewModelScope). Допустим: JUnit-тесты (runTest), запуск main(), интеграция с блокирующим API.",
+      "tags": ["builders", "testing"],
+      "difficulty": 0.4
+    },
+    {
+      "id": "coroutines_018",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Что такое Flow в Kotlin?",
+      "options": [
+        "Асинхронный холодный стрим данных: продюсер отрабатывает на каждый collect, поддерживает backpressure через буферы и операторы",
+        "Синхронный список",
+        "Замена LiveData",
+        "Поток ввода-вывода OS"
+      ],
+      "correctAnswer": "0",
+      "explanation": "Flow — это реактивный поток значений с корутинной семантикой. Ключевое: Flow холодный (ничего не происходит до collect), типобезопасный и поддерживает отмену через collect. Это главный механизм реактивных данных в современном Android (вместо LiveData/RxJava).",
+      "tags": ["flow", "basics"],
+      "difficulty": 0.3
+    },
+    {
+      "id": "coroutines_019",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Что значит, что Flow «холодный» (cold)?",
+      "options": [
+        "Он работает медленно",
+        "Код продюсера выполняется только при collect; каждый подписчик запускает свой прогон",
+        "Он не поддерживает cancel",
+        "Он хранит все значения в памяти"
+      ],
+      "correctAnswer": "1",
+      "explanation": "flow { emit(...) } ничего не делает до collect. При каждом collect блок повторяется (для одного и того же flow — с нуля), если не применить stateIn/shareIn. В отличие от этого StateFlow/SharedFlow — «горячие»: живут независимо от подписчиков.",
+      "tags": ["flow"],
+      "difficulty": 0.4
+    },
+    {
+      "id": "coroutines_020",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Чем StateFlow отличается от SharedFlow?",
+      "options": [
+        "Ничем",
+        "StateFlow всегда имеет актуальное значение (initial + conflation, повторная подписка получит последнее), SharedFlow — событийный: буфер/replay без обязательного «текущего» значения",
+        "StateFlow работает только с String",
+        "SharedFlow не поддерживает emit"
+      ],
+      "correctAnswer": "1",
+      "explanation": "StateFlow = UI-состояние: имеет value, хранит последнее, новые подписчики сразу получают его, дубликаты схлопываются (conflation). SharedFlow = события (одноразовые, типа Toast/навигации): настраиваемый replay, extraBufferCapacity, BufferOverflow. Мнемоника: State — что есть, Shared — что случилось.",
+      "tags": ["stateflow", "sharedflow"],
+      "difficulty": 0.5
+    },
+    {
+      "id": "coroutines_021",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Почему в StateFlow лучше соблюдать equals у значений?",
+      "options": [
+        "Иначе он не компилируется",
+        "StateFlow отбрасывает дубликаты: если новое значение равен предыдущему (equals), UI не перерисовывается — это оптимизация",
+        "Для сортировки",
+        "Требование JVM"
+      ],
+      "correctAnswer": "1",
+      "explanation": "StateFlow сравнивает новое и текущее значение через equals и не эмитит, если они равны. Следствие: data class для UI-состояний обязателен (генерирует equals) — иначе лишние recomposition. Также следствие: если обновили мутабельный объект на месте, равный сам себе, эмита не будет.",
+      "tags": ["stateflow"],
+      "difficulty": 0.5
+    },
+    {
+      "id": "coroutines_022",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Что делает оператор conflation в контексте Flow?",
+      "options": [
+        "Объединяет значения в список",
+        "Пропускает промежуточные значения: если подписчик не успевает, он получит только последнее — для UI это то, что нужно",
+        "Сортирует поток",
+        "Дублирует значения"
+      ],
+      "correctAnswer": "1",
+      "explanation": "Conflation — форма backpressure: producer быстрее consumer → промежуточные значения схлопываются. StateFlow делает это всегда. Оператор conflation() можно применить к любому flow. Строгая доставка каждого значения — buffer()/BufferOverflow.SUSPEND (по умолчанию у channelFlow и некоторых билдеров).",
+      "tags": ["flow", "backpressure"],
+      "difficulty": 0.55
+    },
+    {
+      "id": "coroutines_023",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Что делает оператор flowOn { }?",
+      "options": [
+        "Запускает flow в отдельном потоке навсегда",
+        "Переключает ВЫШЕСТОЯЩИЕ операторы (продюсер) на указанный контекст/диспетчер; на подписчика не влияет",
+        "Меняет context подписчику",
+        "Отключает отмену"
+      ],
+      "correctAnswer": "1",
+      "explanation": "flowOn создаёт границу: всё, что объявлено ДО него в цепочке, работает в заданном контексте (например, Dispatchers.IO для запроса), а collect идёт в контексте подписчика (Main). Один flow может иметь несколько flowOn-границ.",
+      "tags": ["flow", "context"],
+      "difficulty": 0.5
+    },
+    {
+      "id": "coroutines_024",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Чем StateFlow.collect отличается от LiveData.observe?",
+      "options": [
+        "Никак, это обёртки друг над другом",
+        "collect — suspend-функция (нужен lifecycleScope.repeatOnLifecycle), LiveData сам подписывается с учётом жизненного цикла; StateFlow переживает уничтожение экрана и не дублирует значения",
+        "LiveData быстрее в 10 раз",
+        "StateFlow работает только во ViewModel"
+      ],
+      "correctAnswer": "1",
+      "explanation": "LiveData привязан к LifecycleOwner (автоподписка/отписка) — удобно, но устарев в новых проектах. StateFlow — чистый Kotlin: подписку вручную оборачивают в repeatOnLifecycle(STARTED), чтобы не получать обновления на остановленном экране. StateFlow переживает поворот (живёт во ViewModel).",
+      "tags": ["stateflow", "livedata"],
+      "difficulty": 0.45
+    },
+    {
+      "id": "coroutines_025",
+      "type": "MCQ",
+      "level": 3,
+      "text": "Как правильно подписаться на StateFlow из Compose-экрана?",
+      "options": [
+        "collectAsState() без параметров — всегда",
+        "collectAsState(initial) в composable; или collectAsStateWithLifecycle() из lifecycle-runtime-compose для остановки сбора при onStop",
+        "launch в remember { }",
+        "observe в onCreate"
+      ],
+      "correctAnswer": "1",
+      "explanation": "collectAsState() превращает StateFlow в Compose State — recomposition при эмите. collectAsStateWithLifecycle дополнительно прекращает сбор в STOPPED, экономя работу. Никаких launch в composable без LaunchedEffect — иначе утечки подписок.",
+      "tags": ["flow", "compose"],
+      "difficulty": 0.5
+    },
+    {
+      "id": "coroutines_026",
+      "type": "MCQ",
+      "level": 3,
+      "text": "Что делает stateIn(scope, SharingStarted.WhileSubscribed(5000), initial)?",
+      "options": [
+        "Конвертирует холодный Flow в StateFlow, разделяемую между подписчиками: upstream работает, пока есть подписчики (+таймаут 5с), с начальным значением",
+        "Останавливает scope",
+        "Буферизует 5000 значений",
+        "Создаёт 5000 подписчиков"
+      ],
+      "correctAnswer": "0",
+      "explanation": "stateIn — мост flow → StateFlow во ViewModel: val uiState = repo.observe().stateIn(vmScope, SharingStarted.WhileSubscribed(5000), Loading). WhileSubscribed(timeout) — отключать дорогой upstream при уходе со экрана; Eagerly — сразу и навсегда; Lazily — при первой подписке без остановки.",
+      "tags": ["flow", "stateflow"],
+      "difficulty": 0.7
+    },
+    {
+      "id": "coroutines_027",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Что делает оператор map у Flow?",
+      "options": [
+        "Преобразует каждое значение потока в новое (типо-трансформация)",
+        "Картография",
+        "Переименовывает поток",
+        "Останавливает поток"
+      ],
+      "correctAnswer": "0",
+      "explanation": "Flow подобен Sequence: map, filter, transform, onEach, scan, debounce, distinctUntilChanged, combine, zip, merge. Операторы ленивы — выполняются при collect, в порядке объявления. Трансформации сэмплируют значения по мере поступления.",
+      "tags": ["flow", "operators"],
+      "difficulty": 0.3
+    },
+    {
+      "id": "coroutines_028",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Для чего в Flow нужен debounce?",
+      "options": [
+        "Удаляет дубликаты",
+        "Пропускает значение, если после него быстро пришло новое — классика для поисковой строки (не слать запрос на каждое нажатие)",
+        "Замедляет выполнение",
+        "Добавляет задержку в конец"
+      ],
+      "correctAnswer": "1",
+      "explanation": "debounce(ms) эмитит только значения, после которых прошла пауза. Для текстового ввода: пользователь печатает → каждый символ обновляет канал → debounce(300) → только финальный текст уходит в репозиторий. Аналог RxJava debounce.",
+      "tags": ["flow", "operators"],
+      "difficulty": 0.45
+    },
+    {
+      "id": "coroutines_029",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Чем distinctUntilChanged отличается от Set-дедупликации?",
+      "options": [
+        "Ничем",
+        "Он сравнивает каждое значение только с ПРЕДЫДУЩИМ в потоке (последовательная дедупликация), а не со всеми ранее виденными",
+        "Он хранит все значения",
+        "Работает только для чисел"
+      ],
+      "correctAnswer": "1",
+      "explanation": "distinctUntilChanged: A, B, A, B → пропустит последний A и B? Нет: сравнение только с предыдущим → A, B, A, B всё пройдёт; A, A, B → второй A отброшен. Критически важен для StateFlow-подобных цепочек, чтобы не дёргать UI без изменений.",
+      "tags": ["flow", "operators"],
+      "difficulty": 0.5
+    },
+    {
+      "id": "coroutines_030",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Что делает combine двух Flow?",
+      "options": [
+        "Соединяет последовательно, дожидаясь обоих",
+        "Эмитит комбинацию ПОСЛЕДНИХ значений обоих потоков при каждом изменении ЛЮБОГО из них",
+        "Складывает числа",
+        "Останавливает первый поток"
+      ],
+      "correctAnswer": "1",
+      "explanation": "combine(a, b) { x, y -> ... } — реактивная сборка формы: как только пришло новое a или b, берутся текущие обоих и эмитится результат (первые эмиты — когда появилось по одному значению от каждого). zip ждёт пары по порядку — для UI почти всегда нужен combine.",
+      "tags": ["flow", "operators"],
+      "difficulty": 0.55
+    },
+    {
+      "id": "coroutines_031",
+      "type": "MCQ",
+      "level": 3,
+      "text": "Как выполнить параллельно два запроса и дождаться обоих внутри корутины?",
+      "options": [
+        "Подряд: val a = getA(); val b = getB()",
+        "Два launch без ожидания",
+        "val d1 = async { getA() }; val d2 = async { getB() }; результат = d1.await() + d2.await()",
+        "withContext дважды"
+      ],
+      "correctAnswer": "2",
+      "explanation": "async запускает параллельно и возвращает Deferred. await() дожидается. Ключ: async должен быть запущен ДО первого await, иначе выполнение станет последовательным. В scope с structured concurrency ошибки async всплывают при await или при завершении scope.",
+      "tags": ["async", "parallel"],
+      "difficulty": 0.5
+    },
+    {
+      "id": "coroutines_032",
+      "type": "TRUE_FALSE",
+      "level": 1,
+      "text": "Suspend-функция может вызываться только из другой suspend-функции или из корутины.",
+      "options": ["Верно", "Неверно"],
+      "correctAnswer": "0",
+      "explanation": "Компилятор Kotlin не позволит вызвать delay() из обычной функции — ошибка «suspension functions can be called only within coroutine body». Это называется structured checking suspend-контекста. Обход — runBlocking { } на границе с блокирующим кодом.",
+      "tags": ["basics"],
+      "difficulty": 0.2
+    },
+    {
+      "id": "coroutines_033",
+      "type": "TRUE_FALSE",
+      "level": 2,
+      "text": "Главная (UI) корутина в Android может быть заблокирована вызовом delay().",
+      "options": ["Верно", "Неверно"],
+      "correctAnswer": "1",
+      "explanation": "delay — suspend, а не блокировка: поток отдаётся, UI продолжает рисоваться. Блокирует главный поток Thread.sleep или синхронный I/O — отсюда ANR. Сuspension как раз и придумана, чтобы не блокировать.",
+      "tags": ["basics", "dispatchers"],
+      "difficulty": 0.35
+    },
+    {
+      "id": "coroutines_034",
+      "type": "TRUE_FALSE",
+      "level": 2,
+      "text": "Flow — горячий: продюсер работает, даже если никто не подписан.",
+      "options": ["Верно", "Неверно"],
+      "correctAnswer": "1",
+      "explanation": "Обычный flow { } холодный: продюсер стартует при collect. Горячие — StateFlow/SharedFlow/ChannelFlow c shareIn/stateIn: живут независимо от подписчиков и раздают значения «всем, кто придёт».",
+      "tags": ["flow"],
+      "difficulty": 0.4
+    },
+    {
+      "id": "coroutines_035",
+      "type": "TRUE_FALSE",
+      "level": 3,
+      "text": "ВviewModelScope ошибка в одной корутине не отменяет другие корутины этого scope.",
+      "options": ["Верно", "Неверно"],
+      "correctAnswer": "0",
+      "explanation": "viewModelScope построен на SupervisorJob: дети изолированы, падение одного launch не роняет остальные. Но само необработанное исключение всё равно долетит до CoroutineExceptionHandler и уронит приложение — catch внутри обязателен для бизнес-ошибок.",
+      "tags": ["error-handling", "scope"],
+      "difficulty": 0.6
+    },
+    {
+      "id": "coroutines_036",
+      "type": "INPUT",
+      "level": 1,
+      "text": "Название диспетчера для операций ввода-вывода (сеть, база, диск). Введите полное выражение.",
+      "options": null,
+      "correctAnswer": "Dispatchers.IO",
+      "explanation": "Dispatchers.IO — пул до 64 потоков для блокирующего ввода-вывода, разделяет лимит с Dispatchers.Default. С Retrofit suspend и Room suspend диспетчер уже встроен, но для ручных File/SharedPreferences-операций withContext(Dispatchers.IO) обязателен.",
+      "tags": ["dispatchers"],
+      "difficulty": 0.15
+    },
+    {
+      "id": "coroutines_037",
+      "type": "INPUT",
+      "level": 1,
+      "text": "Имя suspend-функции Kotlin, асинхронно приостанавливающей корутину на указанное время (аналог Thread.sleep, но неблокирующий).",
+      "options": null,
+      "correctAnswer": "delay",
+      "explanation": "delay(millis) — кооперативная точка отмены, не блокирует поток. В тестах с TestDispatcher её заменяет advanceTimeBy/advanceUntilIdle из kotlinx-coroutines-test.",
+      "tags": ["basics"],
+      "difficulty": 0.1
+    },
+    {
+      "id": "coroutines_038",
+      "type": "INPUT",
+      "level": 2,
+      "text": "Метод Deferred, возвращающий результат асинхронной корутины (блокирующий вызов в suspend-контексте). Введите имя.",
+      "options": null,
+      "correctAnswer": "await",
+      "explanation": "deferred.await() — «дождаться результата». В suspend-контексте не блокирует поток, а приостанавливает корутину. Возвращает исключение, брошенное внутри async, — вызывающему.",
+      "tags": ["async"],
+      "difficulty": 0.2
+    },
+    {
+      "id": "coroutines_039",
+      "type": "CARD",
+      "level": 2,
+      "text": "Назовите три диспетчера в Kotlin coroutines и для чего подходит каждый на Android.",
+      "options": null,
+      "correctAnswer": "Main — главный поток UI; IO — блокирующий ввод-вывод (сеть/диск/база); Default — CPU-вычисления",
+      "explanation": "Dispatchers.Main (и Main.immediate) — работа с UI и state. Dispatchers.IO — до 64 потоков под блокирующие вызовы: чтение файлов, SQLite, SharedPreferences. Dispatchers.Default — пул размером с ядра CPU: JSON-парсинг, сортировка, математика. Есть также Unconfined (продолжается в потоке, где возобновилась — редко, обычно в тестах) и анимационные диспетчеры Android.",
+      "tags": ["dispatchers"],
+      "difficulty": 0.35
+    },
+    {
+      "id": "coroutines_040",
+      "type": "CARD",
+      "level": 3,
+      "text": "Опишите, что произойдёт, если в launch внутри viewModelScope бросить RuntimeException без try/catch. Как предотвратить падение?",
+      "options": null,
+      "correctAnswer": "Исключение всплывает и роняет приложение; предотвращается try/catch вокруг тела, CoroutineExceptionHandler в контексте или возвратом sealed-состояния Error",
+      "explanation": "Хотя viewModelScope — SupervisorJob (siblings не отменяются), необработанное исключение из любой корутины доставляется CoroutineExceptionHandler, а затем — диспетчеру потока (на Android Process): краш. Приёмы защиты: 1) try/catch внутри launch, преобразование в UI-состояние Error; 2) CoroutineExceptionHandler в viewModelScope.context (но он не ловит исключения async до await); 3) репозиторий возвращает Result/ sealed, а не бросает. В structured concurrency считайте: handler — страховка, а не основной механизм.",
+      "tags": ["error-handling"],
+      "difficulty": 0.7
+    }
+  ]
+}

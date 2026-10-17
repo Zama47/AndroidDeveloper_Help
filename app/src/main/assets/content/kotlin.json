@@ -1,0 +1,551 @@
+{
+  "version": 1,
+  "topic": "kotlin",
+  "questions": [
+    {
+      "id": "kotlin_001",
+      "type": "MCQ",
+      "level": 1,
+      "text": "Что выведет код?\n\nval name: String? = null\nprintln(name ?: \"Гость\")",
+      "options": ["null", "Гость", "Пустая строка", "Ошибка компиляции"],
+      "correctAnswer": "1",
+      "explanation": "Оператор Элвиса (?:) возвращает левый операнд, если он не null, иначе правый. name = null, поэтому будет выведено «Гость». Это основной способ задать значение по умолчанию для nullable-типа.",
+      "tags": ["null-safety", "operators"],
+      "difficulty": 0.1
+    },
+    {
+      "id": "kotlin_002",
+      "type": "MCQ",
+      "level": 1,
+      "text": "Чем отличается val от var?",
+      "options": [
+        "val — переменная может быть переприсвоена, var — нет",
+        "val — ссылка только для чтения (переприсвоить нельзя), но состояние объекта по ссылке менять можно; var разрешает переприсвоение",
+        "val создаётся в стеке, var — в куче",
+        "Разницы нет, это синонимы"
+      ],
+      "correctAnswer": "1",
+      "explanation": "val — это read-only ссылка, а не неизменяемый объект. val-список типа mutableListOf можно мутировать (add/remove), но нельзя присвоить новый список. Для неизменяемых коллекций есть listOf. var разрешает и переприсвоение.",
+      "tags": ["basics", "immutability"],
+      "difficulty": 0.2
+    },
+    {
+      "id": "kotlin_003",
+      "type": "MCQ",
+      "level": 1,
+      "text": "Что выведет код?\n\nval items = listOf(\"a\", \"b\", \"c\")\nprintln(items[1].uppercase())",
+      "options": ["a", "B", "b", "Ошибка компиляции"],
+      "correctAnswer": "1",
+      "explanation": "items[1] даёт «b», а uppercase() возвращает НОВУЮ строку в верхнем регистре — «B». Строкы неизменяемы, любое «изменение» создаёт новый объект.",
+      "tags": ["strings", "collections"],
+      "difficulty": 0.1
+    },
+    {
+      "id": "kotlin_004",
+      "type": "MCQ",
+      "level": 1,
+      "text": "Какой оператор сравнивает ссылки (тождество объектов) в Kotlin?",
+      "options": ["==", "===", "!=", "equals()"],
+      "correctAnswer": "1",
+      "explanation": "== вызывает equals() (структурное сравнение), === сравнивает ссылки в памяти. Фактически a == b компилируется в a?.equals(b) ?: (b === null).",
+      "tags": ["operators", "equality"],
+      "difficulty": 0.2
+    },
+    {
+      "id": "kotlin_005",
+      "type": "MCQ",
+      "level": 1,
+      "text": "Что делает оператор ?. в выражении user?.name?",
+      "options": [
+        "Приводит user к типу name",
+        "Выполняет вызов только если user не null, иначе выражение вернёт null без NPE",
+        "Гарантированно бросает NPE при null",
+        "Присваивает name в user"
+      ],
+      "correctAnswer": "1",
+      "explanation": "?. — safe call operator. Если receiver null, вызов не происходит и выражение возвращает null. Цепочки a?.b?.c безопасны, но прерываются при первом null. Дальше комбинируют с ?: или !!.",
+      "tags": ["null-safety"],
+      "difficulty": 0.1
+    },
+    {
+      "id": "kotlin_006",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Чем data class отличается от обычного class?",
+      "options": [
+        "Компилятор автоматически генерирует equals/hashCode/toString/copy/componentN из свойств primary constructor",
+        "data class нельзя создать больше одного раза",
+        "data class всегда неизменяем",
+        "data class не может иметь методов"
+      ],
+      "correctAnswer": "0",
+      "explanation": "Генерируются: equals и hashCode по всем свойствам primary constructor, toString вида User(name=...), copy() и component1..N для деструктуризации. Требования: primary constructor, хотя бы один параметр, val/var. Методы добавлять можно.",
+      "tags": ["classes", "data-class"],
+      "difficulty": 0.3
+    },
+    {
+      "id": "kotlin_007",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Зачем нужна функция copy() у data class?",
+      "options": [
+        "Сериализует объект в JSON",
+        "Создаёт копию с возможностью переопределить часть свойств — удобно для immutable-обновлений",
+        "Глубоко клонирует все вложенные объекты",
+        "Очищает объект из памяти"
+      ],
+      "correctAnswer": "1",
+      "explanation": "copy(age = 30) возвращает новый объект с теми же полями, кроме указанных. Основа работы с неизменяемым state в MVI. Важно: copy — поверхностная копия, вложенные изменяемые объекты разделяются.",
+      "tags": ["data-class", "immutability"],
+      "difficulty": 0.3
+    },
+    {
+      "id": "kotlin_008",
+      "type": "MCQ",
+      "level": 1,
+      "text": "Что выведет код?\n\nval a = 1\nval b = 2\nval result = if (a > b) \"больше\" else \"меньше\"\nprintln(result)",
+      "options": ["больше", "меньше", "null", "Ошибка компиляции"],
+      "correctAnswer": "1",
+      "explanation": "В Kotlin if — выражение, возвращающее значение (аналог тернарника из Java). 1 > 2 ложно, поэтому result = «меньше». Тернарного оператора ? : в Kotlin нет.",
+      "tags": ["control-flow", "expressions"],
+      "difficulty": 0.1
+    },
+    {
+      "id": "kotlin_009",
+      "type": "MCQ",
+      "level": 1,
+      "text": "Что выведет when без параметра?\n\nval x = 5\nwhen {\n    x > 10 -> println(\"big\")\n    x > 3 -> println(\"mid\")\n    else -> println(\"small\")\n}",
+      "options": ["big", "mid", "small", "Ошибка: when обязан иметь параметр"],
+      "correctAnswer": "1",
+      "explanation": "when без параметра работает как if-else if: ветки проверяются по порядку, выполняется первая истинная. 5 > 10 ложно, 5 > 3 истинно → «mid». when также бывает выражением и заменой switch с subject.",
+      "tags": ["control-flow", "when"],
+      "difficulty": 0.2
+    },
+    {
+      "id": "kotlin_010",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Когда компилятор требует else-ветку в when?",
+      "options": [
+        "Всегда",
+        "Когда when используется как выражение и ветки не покрывают все возможные значения типа",
+        "Только для sealed class",
+        "Никогда"
+      ],
+      "correctAnswer": "1",
+      "explanation": "when-выражение обязано быть исчерпывающим: либо ветки покрывают все варианты sealed/enum/Boolean, либо есть else. Если результат when никуда не присваивается, else необязателен.",
+      "tags": ["when", "exhaustiveness"],
+      "difficulty": 0.4
+    },
+    {
+      "id": "kotlin_011",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Для чего применяются функции scope let/run/with/apply/also?",
+      "options": [
+        "Для запуска кода в отдельном потоке",
+        "Для ограничения области видимости и удобной композиции вызовов с контекстом this или it",
+        "Для создания анонимных классов",
+        "Для обработки исключений"
+      ],
+      "correctAnswer": "1",
+      "explanation": "Все пять — extension-функции для композиции вызовов. let/run/with возвращают результат лямбды; apply/also возвращают сам объект (для цепочек). let/run/with — контекст this; apply/also — it. also удобен для логирования, apply — для настройки объекта.",
+      "tags": ["scope-functions"],
+      "difficulty": 0.3
+    },
+    {
+      "id": "kotlin_012",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Чем apply отличается от also?",
+      "options": [
+        "apply принимает в лямбду it, also — this",
+        "Обе возвращают receiver; apply работает с контекстом this (настроить объект), also — с it (побочный эффект, например лог)",
+        "apply работает только с nullable",
+        "Разницы нет"
+      ],
+      "correctAnswer": "1",
+      "explanation": "Семантика возврата одинакова — объект-получатель. apply: this, «сделать и вернуть объект» (StringBuilder().apply { append }). also: it, «и также сделать что-то ещё» (list.also { log(it) }).",
+      "tags": ["scope-functions"],
+      "difficulty": 0.4
+    },
+    {
+      "id": "kotlin_013",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Чем run отличается от with?",
+      "options": [
+        "Никак — это один и тот же оператор",
+        "Семантика одинакова (this + результат лямбды), разница в синтаксисе: obj.run { } vs with(obj) { }",
+        "run работает только с числами",
+        "with нельзя использовать для инициализации"
+      ],
+      "correctAnswer": "1",
+      "explanation": "Обе дают контекст this и возвращают результат блока. run вызывается как extension на объекте или как функция с лямбдой; with — обычный вызов with(obj) { }. Существует также run без receiver для вычисления результата.",
+      "tags": ["scope-functions"],
+      "difficulty": 0.4
+    },
+    {
+      "id": "kotlin_014",
+      "type": "MCQ",
+      "level": 1,
+      "text": "Что выведет код?\n\nval list = listOf(1, 2, 3, 4, 5)\nval result = list.filter { it % 2 == 0 }.map { it * 10 }\nprintln(result)",
+      "options": ["[10, 20, 30, 40, 50]", "[20, 40]", "[1, 3, 5]", "[]"],
+      "correctAnswer": "1",
+      "explanation": "filter оставляет чётные (2, 4), map умножает каждое на 10 → [20, 40]. Обычные коллекции обрабатывают каждый оператор целиком по всему набору; для ленивого поэлементного прохода нужна Sequence.",
+      "tags": ["collections", "functional"],
+      "difficulty": 0.2
+    },
+    {
+      "id": "kotlin_015",
+      "type": "MCQ",
+      "level": 2,
+      "text": "В чём разница между List и Sequence в Kotlin?",
+      "options": [
+        "Sequence нельзя индексировать, List нельзя итерировать",
+        "List выполняет каждую операцию сразу по всему набору (промежуточные коллекции), Sequence обрабатывает каждый элемент ленивый через весь конвейер, экономя память",
+        "Sequence всегда быстрее",
+        "Sequence хранит данные в базе"
+      ],
+      "correctAnswer": "1",
+      "explanation": "list.filter{}.map{} создаёт промежуточный список на каждом шаге. sequence{}.filter{}.map{}.toList() прогоняет каждый элемент через все операции без промежуточных аллокаций. Sequence выигрывает на больших данных (>1000 элементов, 3+ операций).",
+      "tags": ["collections", "performance"],
+      "difficulty": 0.5
+    },
+    {
+      "id": "kotlin_016",
+      "type": "MCQ",
+      "level": 1,
+      "text": "Что делает оператор spread (*) при передаче аргумента?",
+      "options": [
+        "Умножает аргументы",
+        "Разворачивает массив в отдельные аргументы для vararg-функции: fun(*arr)",
+        "Передаёт ссылку на массив",
+        "Создаёт указатель"
+      ],
+      "correctAnswer": "1",
+      "explanation": "vararg позволяет передавать переменное число аргументов. Оператор * (spread) разворачивает массив в отдельные элементы при вызове. Внутри функции vararg виден как Array<out T>.",
+      "tags": ["functions", "vararg"],
+      "difficulty": 0.3
+    },
+    {
+      "id": "kotlin_017",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Для чего нужен модификатор inline у функции с лямбдой?",
+      "options": [
+        "Ускоряет функцию ровно в два раза",
+        "Вставляет тело функции и лямбд в место вызова: нет аллокации лямбд-объектов и возможен non-local return",
+        "Запрещает рекурсию",
+        "Кэширует результат вызова"
+      ],
+      "correctAnswer": "1",
+      "explanation": "inline копирует тело в место вызова: убираются накладные расходы на создание функциональных объектов — критично для map/filter/let. Разрешает non-local return (return выходит из внешней функции). Не применяется к рекурсивным и слишком большим функциям — компилятор отклоняет.",
+      "tags": ["functions", "performance"],
+      "difficulty": 0.5
+    },
+    {
+      "id": "kotlin_018",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Зачем нужен модификатор reified у дженерик-параметра?",
+      "options": [
+        "Позволяет использовать T как обычный класс в теле функции (T::class, is T) — работает только вместе с inline",
+        "Сериализует тип в JSON",
+        "Делает тип nullable",
+        "Отключает стирание типа"
+      ],
+      "correctAnswer": "0",
+      "explanation": "Обычный дженерик-параметр стирается в рантайме (type erasure), поэтому T::class или x is T недоступны. reified «замораживает» информацию о типе в месте вызова. Требования: reified + inline. Пример: inline fun <reified T> Intent.get(key: String): T?",
+      "tags": ["generics", "reified"],
+      "difficulty": 0.6
+    },
+    {
+      "id": "kotlin_019",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Что делает ключевое слово lateinit?",
+      "options": [
+        "Объявляет переменную, инициализируемую позже; допустимо только для var-свойств ссылочных типов, при обращении до инициализации — исключение",
+        "Инициализирует переменную лениво при первом обращении",
+        "Делает переменную видимой в одном потоке",
+        "Делает переменную глобальной"
+      ],
+      "correctAnswer": "0",
+      "explanation": "lateinit — «инициализирую позже» (@Inject поля, view binding). Проверка: ::prop.isInitialized. Ограничения: var, не nullable, не примитивы, нельзя для локальных переменных. Lazy — противоположность: ленивая инициализация при первом чтении.",
+      "tags": ["initialization", "lateinit"],
+      "difficulty": 0.4
+    },
+    {
+      "id": "kotlin_020",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Чем by lazy { } отличается от lateinit?",
+      "options": [
+        "lazy вычисляет значение один раз при первом обращении (по умолчанию потокобезопасно); lateinit требует прямого присвоения до использования",
+        "lazy работает только с примитивами",
+        "lateinit ленивый",
+        "Разницы нет"
+      ],
+      "correctAnswer": "0",
+      "explanation": "lazy — делегат: значение создаётся при первом get() и кэшируется (LazyThreadSafetyMode.SYNCHRONIZED по умолчанию). lateinit — отложенная инициализация без ленивости: до присвоения обращение бросит UninitializedPropertyAccessException.",
+      "tags": ["initialization", "lazy"],
+      "difficulty": 0.4
+    },
+    {
+      "id": "kotlin_021",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Для чего нужен sealed class/interface?",
+      "options": [
+        "Ограничивает набор подтипов (все объявлены в модуле) — когда варианты фиксированы, чем иерархия when становится исчерпывающей без else",
+        "Создаёт singleton",
+        "Сериализует объект",
+        "Делает класс потокобезопасным"
+      ],
+      "correctAnswer": "0",
+      "explanation": "Sealed-наследники объявлены в одном модуле (Kotlin 1.5+). Главная выгода: when по sealed-объекту исчерпывающий — компилятор проверит, что обработаны все варианты. Идеален для UI-состояний (Loading/Success/Error) и событий MVI.",
+      "tags": ["sealed", "type-system"],
+      "difficulty": 0.4
+    },
+    {
+      "id": "kotlin_022",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Чем enum class отличается от sealed class?",
+      "options": [
+        "Нет отличий",
+        "Enum — константы-синглтоны одной структуры; sealed — произвольные классы-наследники с разными полями",
+        "Enum нельзя иметь методы",
+        "Sealed может содержать только два варианта"
+      ],
+      "correctAnswer": "1",
+      "explanation": "Enum: синглтон-константы (MONDAY), можно свойства и методы, values(). Sealed: наследники — обычные классы с разными данными (data object Loading; data class Success(val data: T)). Единая метка → enum; у вариантов свои поля → sealed.",
+      "tags": ["enum", "sealed"],
+      "difficulty": 0.4
+    },
+    {
+      "id": "kotlin_023",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Что такое extension function и в чём её ограничение?",
+      "options": [
+        "Функция-наследник, расширяющая методы родителя",
+        "Функция с синтаксисом Type.имя(), вызываемая как метод, но скомпилированная статически: невиртуальная, без доступа к приватным членам",
+        "Функция, которая расширяет память",
+        "Метод интерфейса по умолчанию"
+      ],
+      "correctAnswer": "1",
+      "explanation": "Extension — сахар над статическим вызовом с receiver-параметром. Выбор диспетчеризации статический: определяется объявленным типом, переопределить нельзя. Receiver может быть nullable: fun String?.writeln().",
+      "tags": ["extensions", "functions"],
+      "difficulty": 0.4
+    },
+    {
+      "id": "kotlin_024",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Что делает object declaration?",
+      "options": [
+        "Создаёт singleton — единственный экземпляр, лениво инициализируется при первом обращении",
+        "Создаёт анонимный объект",
+        "Объявляет статический блок",
+        "Превращает класс в data class"
+      ],
+      "correctAnswer": "0",
+      "explanation": "object — потокобезопасный (double-checked locking) синглтон. object : Interface { } — анонимный разовый объект. companion object — «статическая» область класса. object — выражение: val listener = object : OnClickListener { }.",
+      "tags": ["objects", "singleton"],
+      "difficulty": 0.3
+    },
+    {
+      "id": "kotlin_025",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Как в Kotlin получить «статические» методы класса?",
+      "options": [
+        "Ключевым словом static",
+        "Через companion object внутри класса или верхнеуровневые функции в файле",
+        "Через new",
+        "Через аннотацию @static"
+      ],
+      "correctAnswer": "1",
+      "explanation": "Kotlin не имеет static. Вместо него: companion object (доступ как Class.method(), можно реализовать интерфейсы), object-синглтон или верхнеуровневые функции/свойства пакета. Companion — обычный объект, что важно для Hilt и сериализации.",
+      "tags": ["companion", "top-level"],
+      "difficulty": 0.3
+    },
+    {
+      "id": "kotlin_026",
+      "type": "MCQ",
+      "level": 1,
+      "text": "Что выведет код?\n\nval user = Pair(\"Анна\", 30)\nval (name, age) = user\nprintln(\"$name, $age\")",
+      "options": ["Анна, 30", "user, 2", "Ошибка компиляции", "null, null"],
+      "correctAnswer": "0",
+      "explanation": "Деструктуризация вызывает componentN()-функции. Для data class они генерируются автоматически; для обычного класса их пишут вручную (operator fun componentN()). Pair — data class с component1/component2.",
+      "tags": ["destructuring", "data-class"],
+      "difficulty": 0.3
+    },
+    {
+      "id": "kotlin_027",
+      "type": "MCQ",
+      "level": 1,
+      "text": "Какой тип подходит для числа Int, которого может не быть?",
+      "options": ["Int", "Int?", "Any", "Nothing"],
+      "correctAnswer": "1",
+      "explanation": "Int? (nullable Int) допускает null; Int — нет, присвоение null ошибка компиляции (отличие от Java). Any — верхний тип (аналог Object). Nothing — тип без значений: у функций, всегда бросающих исключение или возвращающих Unit-подобный предел.",
+      "tags": ["null-safety", "types"],
+      "difficulty": 0.1
+    },
+    {
+      "id": "kotlin_028",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Что такое smart cast?",
+      "options": [
+        "Автоматическое приведение nullable к non-null после проверки (или is-проверки) — компилятор сам вставляет каст",
+        "Приведение через as без проверки",
+        "Оптимизация циклов",
+        "Каст к Any"
+      ],
+      "correctAnswer": "0",
+      "explanation": "if (x != null) println(x.length) — после проверки компилятор «умно» кастует x к String. Работает и с is. НЕ работает, если значение — публичный var (может измениться), свойство с custom get или var-локальная переменная в лямбде.",
+      "tags": ["types", "smart-cast"],
+      "difficulty": 0.4
+    },
+    {
+      "id": "kotlin_029",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Чем unchecked cast отличается от unsafe cast (as)?",
+      "options": [
+        "Ничем",
+        "unchecked — приведение дженерика, невыполнимое в рантайме из-за стирания типа (warning); unsafe — as, бросающий ClassCastException при несовпадении",
+        "unchecked бросает исключение, as — нет",
+        "as безопаснее"
+      ],
+      "correctAnswer": "1",
+      "explanation": "list as List<String> — компилятор не может проверить тип элементов (стирание), выдаёт warning unchecked cast. user as String — unsafe cast: при несовпадении ClassCastException. Безопасный путь для дженериков — reified + inline.",
+      "tags": ["types", "casting"],
+      "difficulty": 0.5
+    },
+    {
+      "id": "kotlin_030",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Что произойдёт при обращении к lateinit-свойству до его инициализации?",
+      "options": ["Вернёт null", "UninitializedPropertyAccessException", "Ошибка компиляции", "Создаст объект автоматически"],
+      "correctAnswer": "1",
+      "explanation": "lateinit — non-null, поэтому вместо null бросается kotlin.UninitializedPropertyAccessException. Проверить заранее: if (::binding.isInitialized).",
+      "tags": ["lateinit", "initialization"],
+      "difficulty": 0.3
+    },
+    {
+      "id": "kotlin_031",
+      "type": "TRUE_FALSE",
+      "level": 1,
+      "text": "Оператор !! в Kotlin выбрасывает NullPointerException, если переменная равна null.",
+      "options": ["Верно", "Неверно"],
+      "correctAnswer": "0",
+      "explanation": "!! (non-null assertion) принудительно приводит nullable к non-null; при null бросает NPE. Используют только при полной уверенности в не-null. Лучшие альтернативы: ?: с дефолтом, requireNotNull/checkNotNull для инвариантов.",
+      "tags": ["null-safety"],
+      "difficulty": 0.1
+    },
+    {
+      "id": "kotlin_032",
+      "type": "TRUE_FALSE",
+      "level": 2,
+      "text": "val-список listOf(1,2,3) нельзя изменить — вызов add(4) вызовет ошибку компиляции.",
+      "options": ["Верно", "Неверно"],
+      "correctAnswer": "0",
+      "explanation": "listOf возвращает read-only List: в типе нет MutableList, поэтому add недоступен на этапе компиляции. Нюанс: если переменная типизирована как MutableList (список перемен виден как MutableList из Java), мутация возможна в рантайме.",
+      "tags": ["collections", "immutability"],
+      "difficulty": 0.4
+    },
+    {
+      "id": "kotlin_033",
+      "type": "TRUE_FALSE",
+      "level": 2,
+      "text": "Функции и классы в Kotlin по умолчанию открыты для наследования (open).",
+      "options": ["Верно", "Неверно"],
+      "correctAnswer": "1",
+      "explanation": "В Kotlin всё final по умолчанию: классы, методы, свойства. Для наследования нужен явный модификатор open. Философия: наследование — осознанное решение, а не поведение по умолчанию (в отличие от Java).",
+      "tags": ["oop", "inheritance"],
+      "difficulty": 0.3
+    },
+    {
+      "id": "kotlin_034",
+      "type": "TRUE_FALSE",
+      "level": 2,
+      "text": "Блок init в Kotlin выполняется при создании экземпляра класса, в порядке объявления вместе со свойствами.",
+      "options": ["Верно", "Неверно"],
+      "correctAnswer": "0",
+      "explanation": "Блоки init и инициализаторы свойств выполняются в порядке появления в теле класса при каждом создании объекта. Порядок важен: свойство, объявленное после init-блока, ещё не инициализировано внутри него.",
+      "tags": ["classes", "initialization"],
+      "difficulty": 0.4
+    },
+    {
+      "id": "kotlin_035",
+      "type": "TRUE_FALSE",
+      "level": 3,
+      "text": "В Kotlin try/catch может использоваться как выражение, возвращающее значение.",
+      "options": ["Верно", "Неверно"],
+      "correctAnswer": "0",
+      "explanation": "val result = try { parse(s) } catch (e: NumberFormatException) { 0 } — try возвращает значение последнего выражения в блоке или в catch. finally выполняется всегда, но его значение не влияет на результат выражения.",
+      "tags": ["exceptions", "expressions"],
+      "difficulty": 0.5
+    },
+    {
+      "id": "kotlin_036",
+      "type": "INPUT",
+      "level": 1,
+      "text": "Как называется оператор Элвиса в Kotlin (возвращает правый операнд, если левый равен null)? Введите символы.",
+      "options": null,
+      "correctAnswer": "?:",
+      "explanation": "?: — Elvis operator (по сходству с причёской рок-звезды). Пример: val name = input ?: \"Гость\". Часто комбинируют с safe call: user?.city ?: default.",
+      "tags": ["null-safety", "operators"],
+      "difficulty": 0.1
+    },
+    {
+      "id": "kotlin_037",
+      "type": "INPUT",
+      "level": 2,
+      "text": "Как называется генерируемый метод data class для создания копии с изменением части свойств? Введите имя метода со скобками.",
+      "options": null,
+      "correctAnswer": "copy()",
+      "explanation": "copy() возвращает копию объекта, позволяя переопределить часть свойств через именованные аргументы: user.copy(age = 31). Поля без аргументов берутся из оригинала.",
+      "tags": ["data-class"],
+      "difficulty": 0.2
+    },
+    {
+      "id": "kotlin_038",
+      "type": "INPUT",
+      "level": 2,
+      "text": "Каким модификатором помечается класс или функция, чтобы разрешить наследование/переопределение (по умолчанию всё final)? Введите слово.",
+      "options": null,
+      "correctAnswer": "open",
+      "explanation": "open — единственный способ сделать класс/член наследуемым. Абстрактный класс (abstract) тоже можно наследовать, и его методы без тела не final, но для конкретных членов нужен open.",
+      "tags": ["oop", "inheritance"],
+      "difficulty": 0.2
+    },
+    {
+      "id": "kotlin_039",
+      "type": "CARD",
+      "level": 2,
+      "text": "Что такое non-local return и когда он возможен?",
+      "options": null,
+      "correctAnswer": "return из внешней функции внутри лямбды, если лямбда передаётся в inline-функцию",
+      "explanation": "Обычная лянбда не может делать return внешней функции (это ошибка компиляции — local return). Но если лямбда передаётся в inline-функцию (let, run, map...), return внутри неё выходит из ВНЕШНЕЙ функции целиком. Причина: тело лямбды инлайнится в место вызова. Для возврата только из лямбды в не-inline контексте используют unlabeled return@label.",
+      "tags": ["functions", "inline"],
+      "difficulty": 0.55
+    },
+    {
+      "id": "kotlin_040",
+      "type": "CARD",
+      "level": 2,
+      "text": "Что такое type erasure (стирание типов) и как Kotlin его обходит для reified-типов?",
+      "options": null,
+      "correctAnswer": "Информация о дженерик-типе удаляется в рантайме; reified + inline встраивает тип в байткод места вызова",
+      "explanation": "Дженерики в Kotlin/JVM компилируются в erased-байткод: в рантайме List<String> и List<Int> неразличимы, поэтому x is T и T::class невозможны. Обходные пути: 1) reified inline fun <reified T> — компилятор подставляет конкретный тип в каждое место вызова; 2) передача KClass/lambda-проверки явно; 3) Jackson/Gson-рефлексия через явные TypeToken.",
+      "tags": ["generics", "type-system"],
+      "difficulty": 0.65
+    }
+  ]
+}
