@@ -24,6 +24,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -42,15 +43,29 @@ fun HomeScreen(
     onTopicClick: (Topic) -> Unit,
     onDecksClick: () -> Unit,
     deckCount: Int = 0,
+    onProfileClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier.fillMaxSize()) {
-        Text(
-            text = "Android Developer Help",
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
-        )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Android Developer Help",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.weight(1f).padding(horizontal = 8.dp, vertical = 12.dp)
+            )
+            IconButton(
+                onClick = onProfileClick,
+                modifier = Modifier.padding(end = 8.dp)
+            ) {
+                Text(text = "🧑‍💻", style = MaterialTheme.typography.titleLarge)
+            }
+        }
         Text(
             text = "Подготовка к собеседованию: теория и вопросы по темам",
             style = MaterialTheme.typography.bodyMedium,

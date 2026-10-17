@@ -12,16 +12,28 @@ import com.zama.androiddeveloper_help.data.domain.UserDeck
 import com.zama.androiddeveloper_help.data.repository.DeckRepository
 import com.zama.androiddeveloper_help.data.repository.ProfileRepository
 import com.zama.androiddeveloper_help.data.repository.ProgressRepository
+import com.zama.androiddeveloper_help.gamification.Achievements
 import com.zama.androiddeveloper_help.gamification.Gamification
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.LocalDate
+
+data class ProfileUiState(
+    val profile: com.zama.androiddeveloper_help.data.domain.UserProfile =
+        com.zama.androiddeveloper_help.data.domain.UserProfile(),
+    val unlockedAchievements: Set<String> = emptySet()
+) {
+    val level: Int get() = Gamification.level(profile.totalXp)
+    val levelProgress: Float get() = Gamification.levelProgress(profile.totalXp)
+    val xpToNextLevel: Long get() = Gamification.xpToNextLevel(profile.totalXp)
+}
 
 data class QuizUiState(
     val topicId: String? = null,
@@ -63,6 +75,9 @@ class MainViewModel(
     private val _article = MutableStateFlow<ArticleUiState>(ArticleUiState())
     val article: StateFlow<ArticleUiState> = _article.asStateFlow()
 
+    private val _profile = MutableStateFlow(ProfileUiState())
+    val profile: StateFlow<ProfileUiState> = _profile.asStateFlow()
+
     init {
         viewModelScope.launch {
             try {
@@ -75,6 +90,13 @@ class MainViewModel(
         viewModelScope.launch {
             deckRepository.observeDecks().collect { decks ->
                 _home.update { it.copy(decks = decks) }
+            }
+        }
+        viewModelScope.launch {
+            combine(profileRepository.profile, profileRepository.achievements) { profile, achievements ->
+                ProfileUiState(profile, achievements.map { it.id }.toSet())
+            }.collect { state ->
+                _profile.value = state
             }
         }
     }
@@ -140,6 +162,7 @@ class MainViewModel(
                 progressRepository.recordAnswer(topicId, question.id, correct, System.currentTimeMillis())
             }
             profileRepository.addXp(xp)
+            checkAchievements()
         }
     }
 
@@ -172,13 +195,19 @@ class MainViewModel(
 
     private fun finishSession(state: QuizUiState): QuizUiState {
         viewModelScope.launch {
+            val profileOld = profileRepository.current()
+            profileRepository.save(profileOld.copy(totalSessions = profileOld.totalSessions + 1))
             profileRepository.touchStreak(LocalDate.now())
-            val profile = profileRepository.current()
-            val bonus = Gamification.sessionXp(state.correctCount, state.questions.size, profile.currentStreak)
+            if (state.questions.size > 0 && state.correctCount == state.questions.size) {
+                profileRepository.unlockAchievement(Achievements.PERFECT_SESSION)
+            }
+            val updatedProfile = profileRepository.current()
+            val bonus = Gamification.sessionXp(state.correctCount, state.questions.size, updatedProfile.currentStreak)
             profileRepository.addXp(bonus)
             if (bonus > 0) {
                 _quiz.update { if (it.finished) it.copy(xpGained = it.xpGained + bonus) else it }
             }
+            checkAchievements()
         }
         return state.copy(finished = true)
     }
@@ -235,6 +264,17 @@ class MainViewModel(
             )
             if (isNew) {
                 profileRepository.addXp(Gamification.XP_PER_CARD_CREATE)
+            }
+            checkAchievements()
+        }
+    }
+
+    private fun checkAchievements() {
+        viewModelScope.launch {
+            val profile = profileRepository.current()
+            val unlocked = profileRepository.achievements.first().map { it.id }.toSet()
+            Achievements.newlyReached(profile, unlocked).forEach { def ->
+                profileRepository.unlockAchievement(def.id)
             }
         }
     }

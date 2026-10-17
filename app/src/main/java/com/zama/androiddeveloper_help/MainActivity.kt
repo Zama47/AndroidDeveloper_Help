@@ -24,6 +24,7 @@ import com.zama.androiddeveloper_help.ui.ArticleScreen
 import com.zama.androiddeveloper_help.ui.DeckEditorScreen
 import com.zama.androiddeveloper_help.ui.DecksScreen
 import com.zama.androiddeveloper_help.ui.HomeScreen
+import com.zama.androiddeveloper_help.ui.ProfileScreen
 import com.zama.androiddeveloper_help.ui.QuizScreen
 import com.zama.androiddeveloper_help.ui.TopicScreen
 import com.zama.androiddeveloper_help.ui.theme.AndroidDeveloper_HelpTheme
@@ -77,7 +78,14 @@ fun AppNav(
                         navController.navigate("topic/${topic.id}")
                     },
                     onDecksClick = { navController.navigate("decks") },
-                    deckCount = home.decks.size
+                    deckCount = home.decks.size,
+                    onProfileClick = { navController.navigate("profile") }
+                )
+            }
+            composable("profile") {
+                ProfileScreen(
+                    viewModel = viewModel,
+                    onBack = { navController.popBackStack() }
                 )
             }
             composable("decks") {
