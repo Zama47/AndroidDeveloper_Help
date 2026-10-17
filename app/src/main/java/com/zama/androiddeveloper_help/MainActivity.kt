@@ -71,6 +71,8 @@ fun AppNav(
             composable("home") {
                 val home by viewModel.home.collectAsState()
                 val dueCount by viewModel.dueCount.collectAsState()
+                val topicStats by viewModel.topicStats.collectAsState()
+                val profileState by viewModel.profile.collectAsState()
                 HomeScreen(
                     topics = home.topics,
                     loading = home.loading,
@@ -85,7 +87,9 @@ fun AppNav(
                     onProfileClick = { navController.navigate("profile") },
                     dueCount = dueCount,
                     onReviewClick = { navController.navigate("review") },
-                    onSolyankaClick = { navController.navigate("solyanka") }
+                    onSolyankaClick = { navController.navigate("solyanka") },
+                    topicStats = topicStats,
+                    profile = profileState
                 )
             }
             composable("profile") {

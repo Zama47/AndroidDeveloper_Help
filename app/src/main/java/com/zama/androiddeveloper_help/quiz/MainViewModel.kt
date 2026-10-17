@@ -68,6 +68,8 @@ data class HomeUiState(
     val decks: List<UserDeck> = emptyList()
 )
 
+data class TopicStats(val total: Int, val solved: Int)
+
 class MainViewModel(
     private val contentRepository: ContentRepository,
     private val progressRepository: ProgressRepository,
@@ -90,8 +92,27 @@ class MainViewModel(
     private val _dueCount = MutableStateFlow(0)
     val dueCount: StateFlow<Int> = _dueCount.asStateFlow()
 
+    private val _topicStats = MutableStateFlow<Map<String, TopicStats>>(emptyMap())
+    val topicStats: StateFlow<Map<String, TopicStats>> = _topicStats.asStateFlow()
+
     init {
-        refreshDueCount()
+        viewModelScope.launch {
+            refreshUntilStatsLoaded()
+        }
+    }
+
+    private suspend fun refreshUntilStatsLoaded() {
+        val topics = kotlin.runCatching { contentRepository.loadTopics() }.getOrNull() ?: return
+        val totals = topics.associate { topic -> topic.id to
+            runCatching { contentRepository.loadQuestions(topic.id).size }.getOrDefault(0)
+        }
+        progressRepository.observeAll().collect { progressList ->
+            val byTopic = progressList.groupBy { it.topicId }
+            _topicStats.value = totals.mapValues { (topicId, total) ->
+                val entries = byTopic[topicId].orEmpty()
+                TopicStats(total = total, solved = entries.count { it.lastCorrect == true })
+            }
+        }
     }
 
     init {

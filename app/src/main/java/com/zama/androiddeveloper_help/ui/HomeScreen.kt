@@ -25,11 +25,13 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -47,6 +49,9 @@ fun HomeScreen(
     dueCount: Int = 0,
     onReviewClick: () -> Unit = {},
     onSolyankaClick: () -> Unit = {},
+    topicStats: Map<String, com.zama.androiddeveloper_help.quiz.TopicStats> = emptyMap(),
+    profile: com.zama.androiddeveloper_help.quiz.ProfileUiState =
+        com.zama.androiddeveloper_help.quiz.ProfileUiState(),
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier.fillMaxSize()) {
@@ -92,6 +97,13 @@ fun HomeScreen(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 item {
+                    HeroCard(
+                        profile = profile,
+                        dueCount = dueCount,
+                        onOpenLevel = onProfileClick
+                    )
+                }
+                item {
                     ReviewCard(dueCount = dueCount, onClick = onReviewClick)
                 }
                 item {
@@ -100,10 +112,71 @@ fun HomeScreen(
                 item {
                     MyDecksCard(deckCount = deckCount, onClick = onDecksClick)
                 }
+                item {
+                    Text(
+                        text = "Темы для подготовки",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(top = 8.dp)
+                    )
+                }
                 items(topics, key = { it.id }) { topic ->
-                    TopicCard(topic = topic, onClick = { onTopicClick(topic) })
+                    TopicCard(
+                        topic = topic,
+                        stats = topicStats[topic.id],
+                        onClick = { onTopicClick(topic) }
+                    )
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun HeroCard(
+    profile: com.zama.androiddeveloper_help.quiz.ProfileUiState,
+    dueCount: Int,
+    onOpenLevel: () -> Unit
+) {
+    Card(
+        onClick = onOpenLevel,
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer
+        )
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("🧑‍💻", style = MaterialTheme.typography.headlineMedium)
+                Spacer(Modifier.width(12.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Уровень ${profile.level}",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                    Text(
+                        text = "${profile.profile.totalXp} XP • ещё ${profile.xpToNextLevel} до уровня ${profile.level + 1}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("🔥${profile.profile.currentStreak}", style = MaterialTheme.typography.titleLarge)
+                    if (dueCount > 0) {
+                        Text("🔁$dueCount", style = MaterialTheme.typography.titleLarge)
+                    }
+                }
+            }
+            Spacer(Modifier.height(12.dp))
+            LinearProgressIndicator(
+                progress = { profile.levelProgress },
+                strokeCap = StrokeCap.Round,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(10.dp)
+            )
         }
     }
 }
@@ -196,7 +269,11 @@ private fun MyDecksCard(deckCount: Int, onClick: () -> Unit) {
 }
 
 @Composable
-private fun TopicCard(topic: Topic, onClick: () -> Unit) {
+private fun TopicCard(
+    topic: Topic,
+    stats: com.zama.androiddeveloper_help.quiz.TopicStats?,
+    onClick: () -> Unit
+) {
     Card(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
@@ -229,6 +306,25 @@ private fun TopicCard(topic: Topic, onClick: () -> Unit) {
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+                if (stats != null && stats.total > 0) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    LinearProgressIndicator(
+                        progress = { stats.solved.toFloat() / stats.total },
+                        strokeCap = StrokeCap.Round,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(6.dp)
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = if (stats.solved == 0) "${
+                            stats.total
+                        } вопросов ждут первого ответа"
+                        else "Решено ${stats.solved} из ${stats.total}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         }
     }
