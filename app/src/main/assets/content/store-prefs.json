@@ -1,0 +1,87 @@
+{
+  "version": 1,
+  "topic": "store-prefs",
+  "questions": [
+    {
+      "id": "strp_001",
+      "type": "MCQ",
+      "level": 1,
+      "text": "Чем SharedPreferences.apply() отличается от commit()?",
+      "options": [
+        "apply() пишет на диск синхронно и возвращает Boolean; commit() — асинхронно",
+        "commit() пишет на диск синхронно (в вызывающем потоке) и возвращает Boolean; apply() — сохраняет в память сразу, на диск асинхронно и без возврата",
+        "apply() сбрасывает все данные, commit() — сохраняет",
+        "Разницы нет, это синонимы"
+      ],
+      "correctAnswer": "1",
+      "explanation": "apply() мгновенно обновляет in-memory кэш, а запись на диск откладывает — не блокирует поток, но и не сообщает об успехе; commit() блокирует поток до записи и возвращает true/false. Ловушка: apply() всё равно упадёт/запишет только при завершении ожидания — синхронных чтений prefs после apply() это не касается; главное — не звать commit() на main thread.",
+      "tags": ["preferences"],
+      "difficulty": 0.4
+    },
+    {
+      "id": "strp_002",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Когда нужен Proto DataStore, а не Preferences DataStore?",
+      "options": [
+        "Когда нужно хранить всего одну строку",
+        "Когда данные типизированы по protobuf-схеме: строгие типы, поля со default-значениями, безопасное расширение схемы",
+        "Когда данные нужно шифровать",
+        " Proto DataStore нужен для больших списков"
+      ],
+      "correctAnswer": "1",
+      "explanation": "Прото DataStore хранит объект по protobuf-схеме: компилятор генерирует типизированный класс, читаем строго без кастов и null-проверок ключей. Preferences DS — «без схемы»: ключи stringPreferencesKey/booleanPreferencesKey и намерения «тип у ключа». Для больших структурированных данных всё равно смотрят в Room, а не DataStore.",
+      "tags": ["datastore"],
+      "difficulty": 0.5
+    },
+    {
+      "id": "strp_003",
+      "type": "TRUE_FALSE",
+      "level": 2,
+      "text": "DataStore построен на корутинах и Flow: чтение идёт через flow, а запись — через suspend-метод edit { ... }. Синхронных интерфейсов чтения-записи у него нет.",
+      "options": ["Верно", "Неверно"],
+      "correctAnswer": "0",
+      "explanation": "У DataStore нет аналогов commit(): API асинхронный мир — data.map { ... } для чтения и suspend-функция edit (или update для Proto) для записи. Это устраняет ANR от блокирующих чтений SharedPreferences на главном потоке. Ловушка: синхронного runBlocking-обхода не стоит придумывать в UI-коде.",
+      "tags": ["datastore", "coroutines"],
+      "difficulty": 0.35
+    },
+    {
+      "id": "strp_004",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Что происходит при вызове stringPreferencesKey(\"theme\") в Preferences DataStore?",
+      "options": [
+        "Создаёт на диске файл темы",
+        "Создаёт типизированный ключ: его значение будет именно String, при чтении берём его (или null/default)",
+        "Возвращает текущее значение ключа theme",
+        "Удаляет ключ после чтения"
+      ],
+      "correctAnswer": "1",
+      "explanation": "Функции вида stringPreferencesKey/booleanPreferencesKey/intPreferencesKey создают Key<T> с известным типом, а не значение. Чтение: data.map { prefs -> prefs[key] ?: defaultValue }. Ловушка: ключ ≠ значение — на него ещё надо идти через dataFlow.",
+      "tags": ["datastore"],
+      "difficulty": 0.4
+    },
+    {
+      "id": "strp_005",
+      "type": "CARD",
+      "level": 3,
+      "text": "Как правильно мигрировать данные из SharedPreferences в DataStore без потери значений?",
+      "options": null,
+      "correctAnswer": "- Создать DataStore с addMigration(SharedPreferencesMigration(context, \"имя_старого_prefs\"))\n- При первой подписке на DataStore миграция выполняется автоматически: ключи SP переносятся в Preferences DataStore\n- В маппинге значения перекладываются из старых строковых ключей в новые типизированные ключи (для Proto DataStore — в protobuf-сообщение)\n- После успешной миграции старый prefs-файл удаляется\n- Ловушки: несоответствие типа значения при маппинге — исключение; миграция и создание нового ключа должны носить слой между версиями",
+      "explanation": "Ключевой момент: не «прочитать всё вручную и перезаписать», а подключить addMigration(SharedPreferencesMigration) при создании DataStore — перенос произойдёт до первого чтения. Спрашивают редко, но отличает уверенного middle: знание, что уменьшить риск можно сохранением старых файлов до проверки полного переноса.",
+      "tags": ["datastore", "migration"],
+      "difficulty": 0.55
+    },
+    {
+      "id": "strp_006",
+      "type": "INPUT",
+      "level": 1,
+      "text": "Метод SharedPreferences.Editor, который записывает данные на диск синхронно и возвращает Boolean об успехе. Напишите имя метода.",
+      "options": null,
+      "correctAnswer": "commit",
+      "explanation": "edit().commit() — синхронная запись, блокирует поток. apply() — асинхронно, без результата. На main thread commit() может дать jank/ANR — для этого и появился DataStore с асинхронным API.",
+      "tags": ["preferences"],
+      "difficulty": 0.25
+    }
+  ]
+}

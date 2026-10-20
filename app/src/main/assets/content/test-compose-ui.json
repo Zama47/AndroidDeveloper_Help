@@ -1,0 +1,96 @@
+{
+  "version": 1,
+  "topic": "test-compose-ui",
+  "questions": [
+    {
+      "id": "tsc_001",
+      "type": "MCQ",
+      "level": 1,
+      "text": "Какое правило создаёт контекст Compose-теста для отдельного composable без Activity?",
+      "options": [
+        "createComposeRule()",
+        "createAndroidComposeRule<MainActivity>()",
+        "ComposeTestRule()",
+        "CompositionLocalProvider(ComposeTestRule)"
+      ],
+      "correctAnswer": "0",
+      "explanation": "createComposeRule() — «лёгкое» правило: тест сам вызывает setContent {} внутри, Activity не требуется — лучший выбор для проверки отдельного composable. createAndroidComposeRule<MainActivity>() — когда нужно целое Activity (E2E-сценарии, темы, системное поведение). Другие варианты — не существующие API.",
+      "tags": ["testing", "compose", "testrule"],
+      "difficulty": 0.3
+    },
+    {
+      "id": "tsc_002",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Как ищут элемент по тексту в Compose-тестах?",
+      "options": [
+        "composeTestRule.onNodeWithText(\"Войти\").assertIsDisplayed()",
+        "composeTestRule.findViewByText(\"Войти\")",
+        "composeTestRule.onNodeWithTag(\"loginButton\").assertHasClickAction()",
+        "composeTestRule.waitForText(\"Войти\")"
+      ],
+      "correctAnswer": "0",
+      "explanation": "onNodeWithText — стандартный матчер по тексту; рядом onNodeWithTag и onNodeWithContentDescription. findViewByText — понятие View-мира, в Compose его нет; waitForText тоже не существует. Третий вариант допустим как API, но ищет по testTag, а не по тексту. Если совпадений несколько — используйте onAllNodesWithText и уточняйте матчеры.",
+      "tags": ["testing", "compose", "semantics"],
+      "difficulty": 0.35
+    },
+    {
+      "id": "tsc_003",
+      "type": "TRUE_FALSE",
+      "level": 2,
+      "text": "Поиск по testTag надёжнее поиска по тексту при локализации приложения.",
+      "options": ["Верно", "Неверно"],
+      "correctAnswer": "0",
+      "explanation": "Текст меняется от локали («Login», «Anmelden», «Вход») — тест, привязанный к строке, сломается при переводе. testTag — язык-независимый идентификатор в semantics-дереве. Компромисс: для «пользователь увидит фразу» допустим текст, для стабильных локаторов — testTag/contentDescription. Ловушка: contentDescription служит двойной цели — accessibility и тесты.",
+      "tags": ["testing", "compose", "testtag"],
+      "difficulty": 0.4
+    },
+    {
+      "id": "tsc_004",
+      "type": "INPUT",
+      "level": 2,
+      "text": "Какой модификатор (одно слово) возвращает тег, по которому элемент потом ищут через onNodeWithTag?",
+      "correctAnswer": "testTag",
+      "explanation": "Modifier.testTag(\"loginButton\") + onNodeWithTag(\"loginButton\") — каноническая пара языка-независимого поиска. Ловушка: в release-сборке testTag-и обычно скрыты (debug-утилиты), поэтому для UI Automator'а используют testTagsAsResourceId, а для accessibility — contentDescription.",
+      "tags": ["testing", "compose", "testtag"],
+      "difficulty": 0.4
+    },
+    {
+      "id": "tsc_005",
+      "type": "CARD",
+      "level": 3,
+      "text": "Опишите тест Compose: после клика на кнопке должен появиться текст об успехе.",
+      "correctAnswer": "### Скелет теста\n```kotlin\n@get:Rule\nval rule = createComposeRule()\n\n@Test\nfun `login button shows success message`() {\n    rule.setContent { LoginScreen() }\n    rule.onNodeWithText(\"Войти\").performClick()\n    rule.waitForIdle()\n    rule.onNodeWithText(\"Готово\").assertIsDisplayed()\n}\n```\n### Ключевые блоки\n- `createComposeRule()` — для отдельного composable; `createAndroidComposeRule` — для целого Activity\n- `setContent {}` — установка тестируемого дерева\n- действия: `performClick`, `performTextInput`, `performScrollToNode`\n- проверки: `assertIsDisplayed`, `assertExists`, `assertTextEquals`\n- асинхронные данные: `waitUntil { condition }` вместо Thread.sleep\n- анимации: `composeTestRule.mainClock.advanceTimeBy(...)` в тесте с MainTestClock",
+      "explanation": "Совет: не спать по Thread.sleep — Compose-гонки ведут к флакам; используйте waitForIdle/waitUntil.",
+      "tags": ["testing", "compose", "e2e"],
+      "difficulty": 0.5
+    },
+    {
+      "id": "tsc_006",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Что делает waitForIdle() в composeTestRule?",
+      "options": [
+        "Ждёт, пока завершатся текущие композиции/анимации — синхронизирует UI с тестом",
+        "Скрывает все testTag из дерева",
+        "Ускоряет анимации — пропускает их мгновенно",
+        "Перезапускает Activity в тесте"
+      ],
+      "correctAnswer": "0",
+      "explanation": "waitForIdle даёт стабильный момент: дожидается завершения текущих recomposition/анимаций на главном потоке, чтобы assertions видели осмысленное дерево. Для отложенных по времени вещей — waitUntil; для прогонки анимации — mainClock.advanceTimeBy. waitForIdle не «пропускает» и не «отключает» анимации.",
+      "tags": ["testing", "compose", "wait"],
+      "difficulty": 0.45
+    },
+    {
+      "id": "tsc_007",
+      "type": "TRUE_FALSE",
+      "level": 3,
+      "text": "Semantics-дерево в Compose-тестах нельзя использовать для проверки accessibility (contentDescription, роли элементов).",
+      "options": ["Верно", "Неверно"],
+      "correctAnswer": "1",
+      "explanation": "Semantics — основа и для matchers, и для accessibility: fetchSemanticsNode, assertHasClickAction, проверки contentDescription и роли — это и есть способ тестировать a11y-свойства элементов. Отдельная вещь — pixel-сравнение: screenshot-тесты (Paparazzi/Roborazzi) проверяют визуальный рендер, а не semantics.",
+      "tags": ["testing", "compose", "accessibility", "semantics"],
+      "difficulty": 0.55
+    }
+  ]
+}

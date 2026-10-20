@@ -1,0 +1,101 @@
+{
+  "version": 1,
+  "topic": "compose-effects",
+  "questions": [
+    {
+      "id": "cmpe_001",
+      "type": "MCQ",
+      "level": 1,
+      "text": "Что произойдёт с корутиной внутри LaunchedEffect, когда компонент уходит из композиции?",
+      "options": [
+        "Корутина отменится автоматически: эффекты привязаны к композиции, ручная отмена не нужна",
+        "Корутина продолжит выполнение до конца работы",
+        "Корутина замрёт навсегда, а потом возобновится при возвращении на экран",
+        "Композиция подождёт завершения корутины, потом уйдёт"
+      ],
+      "correctAnswer": "0",
+      "explanation": "LaunchedEffect — scope, привязанный к композиционной точке: при выходе из композиции его операции отменяются (и при уходе, и при изменении key). Ловушка «продолжит выполнение» — это как раз то, за что критикуют запуск suspend работ мимо эффектов: утеча и вызовы на экран, которого нет.",
+      "tags": ["compose", "launchedEffect", "effects"],
+      "difficulty": 0.3
+    },
+    {
+      "id": "cmpe_002",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Экран должен загрузить данные при первом появлении. Почему не стоит писать scope.launch { loadData() } прямо в теле Composable?",
+      "options": [
+        "Тело композиции выполняется на каждый recomposition — работа пойдёт заново и заново; для «один раз при входе в композицию» есть LaunchedEffect",
+        "scope.launch вообще нельзя вызывать внутри Compose — только в колбэках",
+        "Композиция перехватит launch и отложит его до следующего кадра",
+        "Нужно вместо этого вызывать loadData() напрямую — он сам встанет в очередь"
+      ],
+      "correctAnswer": "0",
+      "explanation": "Composable — обычная функция, которую runtime может вызывать многократно: любой запуск работ внутри тела дублируется при каждом recomposition. LaunchedEffect(key) выполняет блок один раз на ключ и умеет отменять перезапуск (Unit — «одна загрузка на экран»). Для работ по кликам используйте rememberCoroutineScope.",
+      "tags": ["compose", "launchedEffect", "side-effects"],
+      "difficulty": 0.45
+    },
+    {
+      "id": "cmpe_003",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Для чего предназначен rememberCoroutineScope?",
+      "options": [
+        "Запуск корутин из обработчиков событий (onClick, onDismiss) — не из композиции; scope отменяется, когда его compositional точка уходит",
+        "Выполнение блока один раз при первой композиции — это роль LaunchedEffect",
+        "Хранение Context между recomposition, чтобы не терять Activity",
+        "Создание Dispatcher, живущего столько же, сколько приложение"
+      ],
+      "correctAnswer": "0",
+      "explanation": "rememberCoroutineScope возвращает CoroutineScope, привязанный к точке в композиции: скрывать/открывать панель по клику, анимируя drawerState, — классика. Ловушка «один раз при композиции» — путанница с LaunchedEffect: он запускает корутину при входе, rememberCoroutineScope лишь даёт scope, которым вы управляетесь из событий.",
+      "tags": ["compose", "rememberCoroutineScope", "effects"],
+      "difficulty": 0.45
+    },
+    {
+      "id": "cmpe_004",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Что делает SideEffect и когда выполняется?",
+      "options": [
+        "Выполняется синхронно после каждой успешной композиции/recomposition — чтобы опубликовать состояние Compose в не-Compose код (аналитика, общий объект)",
+        "Выполняется один раз до первого визуального кадра, до лейаута",
+        "Механизм побочных вызовов сети — это эффект для fetch-подобных работ",
+        "Выполняется в фоне на Dispatchers.IO параллельно с рендером"
+      ],
+      "correctAnswer": "0",
+      "explanation": "SideEffect — синхронный хук «после каждой композиции», гарантирует актуальное на момент выхода значение. Ловушка «сеть» — для сетевых работ есть LaunchedEffect с withContext(IO), не SideEffect. Пропуск SideEffect (пишете «когда-нибудь потом») рассинхронизирует не-Compose мир: часть обновлений потеряется, счётчик аналитики посчитает не всё.",
+      "tags": ["compose", "sideEffect", "effects"],
+      "difficulty": 0.5
+    },
+    {
+      "id": "cmpe_005",
+      "type": "TRUE_FALSE",
+      "level": 2,
+      "text": "DisposableEffect требует вызвать onDispose (или аналог) для очистки: подписки и регистрации должны сниматься при уходе из композиции.",
+      "options": ["Верно", "Неверно"],
+      "correctAnswer": "0",
+      "explanation": "DisposableEffect(key) — регистрация: внутри блока subscribe; onDispose { } выполняется при уходе из композиции/смене ключа. Без onDispose подписка останется жить после экрана — утечка и колбэки в мёртвый UI. Помимо системных событий жизненного цикла — это классический способ слушать LocationManager, BroadcastReceiver и прочие Java-API.",
+      "tags": ["compose", "disposableEffect", "effects"],
+      "difficulty": 0.4
+    },
+    {
+      "id": "cmpe_006",
+      "type": "INPUT",
+      "level": 2,
+      "text": "Назовите camelCase-функцию Compose, которая держит последнее значение переменной (например, колбэк) для долго живущей корутины, не перезапуская сам LaunchedEffect.",
+      "options": null,
+      "correctAnswer": "rememberUpdatedState",
+      "explanation": "val currentCallback by rememberUpdatedState(callback) — долгоживущий эффект (например, таймер или слушатель) всегда видит актуальную лямбду, хотя не перезапускается. Пара с DisposableEffect: если подписываться заново ради свежего колбэка — трата ресурсов и риск потерять события. Ловушка: перезапуск эффекта ради нового значения лямбды — часто именно того, чего вы не хотели; rememberUpdatedState это и решает.",
+      "tags": ["compose", "rememberUpdatedState", "effects"],
+      "difficulty": 0.5
+    },
+    {
+      "id": "cmpe_007",
+      "type": "CARD",
+      "level": 3,
+      "text": "В Compose нужно подписаться на системный источник обновлений (например, LocationManager) и корректно отписываться. Опишите обвязку.",
+      "options": null,
+      "correctAnswer": "- DisposableEffect(key) — регистрация: добавить listener в блоке, key — что-то, от чего зависит подписка\n- onDispose { removeListener(...) } — симметричная очистка, иначе утечка колбэков в мёртвый экран\n- rememberUpdatedState(cb) — чтобы эффект всегда вызывал саму свежую лямбду, не дожидаясь пересоздания подписки\n- Не подписываться в теле Composable — там это выполнится на каждый recomposition\n- Ловушка: ключи LaunchedEffect/DisposableEffect выбирать осмысленно (id, объект): Unit перезапускает блок только на отдельном экране",
+      "explanation": "Подсказка: опишите схему эффектов для системных API: общий паттерн DisposableEffect + onDispose + rememberUpdatedState."
+    }
+  ]
+}

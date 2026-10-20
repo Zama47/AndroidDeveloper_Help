@@ -1,0 +1,96 @@
+{
+  "version": 1,
+  "topic": "hilt-advanced",
+  "questions": [
+    {
+      "id": "hla_001",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Чем @Binds принципиально отличается от @Provides в модуле Hilt?",
+      "options": [
+        "@Binds связывает интерфейс с реализацией без кода построения, @Provides — функция, где объект строится вручную",
+        "@Provides работает только для data-классов, @Binds — для интерфейсов",
+        "@Binds требует object-модуль, @Provides — abstract-класс",
+        "Разницы нет: обе генерируют фабрику в рантайме через reflection"
+      ],
+      "correctAnswer": "0",
+      "explanation": "@Binds — дешёвая привязка «интерфейс → имплементация»: abstract-метод без тела, модуль обязателен abstract. @Provides — обычная функция, где вы строите объект вручную (билдеры OkHttp/Retrofit, сторонние SDK); может жить в object. Никакого runtime reflection — всё генерируется на компиляции.",
+      "tags": ["hilt", "binds", "provides"],
+      "difficulty": 0.45
+    },
+    {
+      "id": "hla_002",
+      "type": "MCQ",
+      "level": 2,
+      "text": "У интерфейса Repository две реализации — Default и Debug. Как Hilt различит эти две привязки?",
+      "options": [
+        "Квалификаторами: свои @Qualifier-аннотации (или @Named) на биндингах и точках инъекции",
+        "По имени параметра в конструкторе — Hilt сопоставляет по названию",
+        "По порядку объявления в модуле — первый объявленный победит",
+        "Никак: две привязки одного типа запрещены даже с квалификаторами"
+      ],
+      "correctAnswer": "0",
+      "explanation": "Две привязки одного типа без квалификаторов — duplicate bindings, ошибка компиляции. Квалификатор — маленькая аннотация с @Qualifier — ставится на метод модуля и на точку инъекции; @Named(\"debug\") — встроенный упрощённый вариант. Имя параметра и порядок объявления роли не играют.",
+      "tags": ["hilt", "qualifier", "binds"],
+      "difficulty": 0.45
+    },
+    {
+      "id": "hla_003",
+      "type": "TRUE_FALSE",
+      "level": 2,
+      "text": "Модуль с @Binds-методами должен быть abstract class или interface — object не подойдёт.",
+      "options": ["Верно", "Неверно"],
+      "correctAnswer": "0",
+      "explanation": "@Binds-методы обязаны быть abstract, значит хостящий модуль — abstract class/interface. object-модуль возможен, только если все методы @Provides. Классическая ошибка компиляции: «@Binds methods must be abstract» при попытке положить @Binds в object.",
+      "tags": ["hilt", "binds", "modules"],
+      "difficulty": 0.4
+    },
+    {
+      "id": "hla_004",
+      "type": "INPUT",
+      "level": 2,
+      "text": "Какая аннотация в Hilt-тесте удаляет production-модуль из контейнера, чтобы подставить тестовые биндинги?",
+      "correctAnswer": "@UninstallModules",
+      "explanation": "Схема теста: @HiltAndroidTest + HiltAndroidRule + @UninstallModules(NetworkModule::class) на тест-классе. Для подстановки — второй тестовый модуль с @TestInstallIn или поле @BindValue. Ловушка: без @UninstallModules тестовый биндинг того же типа даст duplicate bindings — ошибка компиляции.",
+      "tags": ["hilt", "testing", "uninstallmodules"],
+      "difficulty": 0.5
+    },
+    {
+      "id": "hla_005",
+      "type": "CARD",
+      "level": 3,
+      "text": "Опишите стандартную схему Hilt-теста, где вместо сетевого слоя подставлен FakeRepository.",
+      "correctAnswer": "### Схема\n```kotlin\n@UninstallModules(NetworkModule::class)\n@HiltAndroidTest\nclass FeatureTest {\n    @get:Rule(order = 0)\n    val hiltRule = HiltAndroidRule(this)\n\n    @BindValue\n    val repo: Repository = FakeRepository()\n}\n```\n### Роли частей\n- `@UninstallModules` — удаляет prod-модуль, иначе duplicate binding\n- `@BindValue` — поле теста становится привязкой на время теста (свежий экземпляр на каждый тест)\n- `hilt-android-testing` в зависимостях + HiltTestApplication в тестовом манифесте\n- `@AndroidEntryPoint`-классы тестируются через ActivityScenario.launch\n- для сторонних билдеров (OkHttp) — TestInstallIn или квалификатор на тестовый биндинг",
+      "explanation": "Совет: order = 0 у HiltAndroidRule важен, если рядом ActivityScenarioRule — правило иниц. контейнер первым.",
+      "tags": ["hilt", "testing", "bindvalue"],
+      "difficulty": 0.6
+    },
+    {
+      "id": "hla_006",
+      "type": "MCQ",
+      "level": 3,
+      "text": "Что такое @BindValue в Hilt-тесте?",
+      "options": [
+        "Поле тест-класса, значение которого становится биндингом на время теста",
+        "Аннотация для production-привязки, чтобы её нельзя было подменить",
+        "То же, что @Qualifier — раскрывается в уникальный тип",
+        "Синоним @Provides, работает только в @HiltAndroidTest"
+      ],
+      "correctAnswer": "0",
+      "explanation": "@BindValue превращает поле тест-класса в привязку; коллекции — через @BindValueIntoSet/@BindValueIntoMap. Не путать с @TestInstallIn (полноценный тестовый модуль) и @UninstallModules (удаление prod-модуля). Квалификаторы — отдельная аннотация, тут они просто могут стоять рядом на поле.",
+      "tags": ["hilt", "testing", "bindvalue"],
+      "difficulty": 0.55
+    },
+    {
+      "id": "hla_007",
+      "type": "TRUE_FALSE",
+      "level": 2,
+      "text": "Метод @Provides может быть suspend-функцией, чтобы Hilt асинхронно достал зависимость при инъекции.",
+      "options": ["Верно", "Неверно"],
+      "correctAnswer": "1",
+      "explanation": "@Provides-методы — обычные синхронные функции: построение графа синхронно, suspend не поддержан. Асинхронная инициализация (token, конфиг) — внутри самого объекта (lazy, корутина в init) или через wrapper-тип. Ловушка: спутать с suspend-методами DAO — их suspend-ность обрабатывает Room, а не Hilt.",
+      "tags": ["hilt", "provides", "suspend"],
+      "difficulty": 0.5
+    }
+  ]
+}

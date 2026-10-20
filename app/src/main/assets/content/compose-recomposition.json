@@ -1,0 +1,85 @@
+{
+  "version": 1,
+  "topic": "compose-recomposition",
+  "questions": [
+    {
+      "id": "cmpc_001",
+      "type": "MCQ",
+      "level": 1,
+      "text": "Когда Compose заново выполнит @Composable функцию (recomposition)?",
+      "options": [
+        "Когда изменились значения состояния или параметров, которые эта функция читает в композиции",
+        "На каждый кадр анимации",
+        "При любом touch-событии в приложении",
+        "Никогда после первого запуска: функция выполняется один раз"
+      ],
+      "correctAnswer": "0",
+      "explanation": "Compose отслеживает чтения состояния (snapshot-система): изменился State, который читает функция, — она запланирована на recomposition целиком, но только она. Ловушка «каждый кадр» — recomposition событийная, а не периодическая; кадр рендерят другие стадии пайплайна (measure, layout, draw).",
+      "tags": ["compose", "recomposition"],
+      "difficulty": 0.3
+    },
+    {
+      "id": "cmpc_002",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Какой класс Compose-компилятор считает стабильным, поэтому функцию с таким параметром можно skip'нуть?",
+      "options": [
+        "data class со всеми свойствами val примитивных типов и String",
+        "data class, в котором есть хотя бы одно var-свойство",
+        "класс со свойством типа List<String> (без kotlinx.collections.immutable)",
+        "класс из сторонней библиотеки без аннотаций @Immutable/@Stable"
+      ],
+      "correctAnswer": "0",
+      "explanation": "Стабильность = неизменяемые (val) поля из известных стабильных типов: примитивы, String, другие стабильные классы. var и API-типы вроде List/Set/Map делают класс нестабильным — компилятор не может гарантировать, что объект не изменился, и не skip'нет функцию. Лечение: ImmutableList/@Immutable-обёртка или вынос мутабельного состояния в один объект-состояние экрана.",
+      "tags": ["compose", "stability", "skipping"],
+      "difficulty": 0.5
+    },
+    {
+      "id": "cmpc_003",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Компонент принимает параметр List<Item>. Что будет с его recomposition?",
+      "options": [
+        "Компилятор не может доказать неизменность List, поэтому компонент не будет skipped и пересоберётся даже при том же содержимом",
+        "Compose сравнит содержимое списка через equals и skip'нет всегда",
+        "Recomposition для списков не работает — Activity пересоберётся целиком",
+        "Список автоматически конвертируется в Sequence и все сравнения отключаются"
+      ],
+      "correctAnswer": "0",
+      "explanation": "List/Set/Map — интерфейсы с методами мутации, их стабильность по умолчанию не гарантирована, а equals-сравнение на каждый recomposition дорого и не встраивается в проверку skip. Решения: kotlinx.collections.immutable (ImmutableList), аннотация @Immutable на модель (если вы гарантируете неизменность), передача компоненту максимально узкого среза данных. Проверять можно через compiler metrics или Layout Inspector (Recomposition Counts).",
+      "tags": ["compose", "stability", "collections"],
+      "difficulty": 0.55
+    },
+    {
+      "id": "cmpc_004",
+      "type": "TRUE_FALSE",
+      "level": 1,
+      "text": "Recomposition пересоздаёт всё дерево UI с нуля, начиная с корневой @Composable функции приложения.",
+      "options": ["Верно", "Неверно"],
+      "correctAnswer": "1",
+      "explanation": "Recomposition умная: пересобираются только функции, чьи inputs изменились, а узлы дерева обновляются инкрементально, без полного rebuild. Ловушка: recomposition ≠ перерисовка кадра (draw) и ≠ пересборка лейаута (measure) — это разные стадии пайплайна; дорогая recomposition не всегда видна как jank, но накапливает работу.",
+      "tags": ["compose", "recomposition", "ui"],
+      "difficulty": 0.35
+    },
+    {
+      "id": "cmpc_005",
+      "type": "INPUT",
+      "level": 2,
+      "text": "Назовите аннотацию Compose (с @), сообщающую компилятору: «этот тип неизменяем», даже если формально он выглядит нестабильным.",
+      "options": null,
+      "correctAnswer": "@Immutable",
+      "explanation": "@Immutable — обещание разработчика: объект никогда не меняется после создания. Родственная аннотация @Stable — для типов, чьи equals/hashCode ведут себя предсказуемо (могут мутаться, но уведомляют об этом). Ловушка: аннотация снимает проверку компилятора, но не делает класс неизменным — если всё же мутируете var, ломается skip и UI не обновится.",
+      "tags": ["compose", "stability", "annotations"],
+      "difficulty": 0.45
+    },
+    {
+      "id": "cmpc_006",
+      "type": "CARD",
+      "level": 3,
+      "text": "Список с лайками: тап по сердечку на одном тормозит весь экран. Изложите ход диагностики и известные приёмы.",
+      "options": null,
+      "correctAnswer": "- Диагностика: Layout Inspector (Recomposition Counts) или compiler metrics — найти, что пересобирается и почему не skip'ается\n- Стабильность модели item: все поля val, примитивы/String, вместо List — kotlinx.collections.immutable ImmutableList (или @Immutable на модель)\n- key в LazyColumn: LazyColumn(items = ..., key = { it.id }) — корректный diff и переиспользование, без key пересоздаются лишние item'\n- Локализовать состояние лайка: держать его в максимально глубокой точке чтения (item), а не в общем состоянии экрана, чтобы пересобиралась одна строка\n- Ловушка: лямбда, захватывающая весь список (создаётся заново на каждый recomposition), и нестабильные модели — заставляют пересобираться parent",
+      "explanation": "Подсказка: объясните, как именно key влияет на measure/draw и почему локализованный state уменьшает recomposition scope."
+    }
+  ]
+}

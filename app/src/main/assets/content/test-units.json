@@ -1,0 +1,96 @@
+{
+  "version": 1,
+  "topic": "test-units",
+  "questions": [
+    {
+      "id": "tsu_001",
+      "type": "MCQ",
+      "level": 1,
+      "text": "Что означает паттерн AAA в unit-тестах?",
+      "options": [
+        "Arrange, Act, Assert: подготовить данные и sut, вызвать действие, проверить результат",
+        "Assert, Act, Arrange",
+        "Autonomy, Atomicity, Assured",
+        "Always Add Assertions"
+      ],
+      "correctAnswer": "0",
+      "explanation": "AAA — Arrange (объекты, тестовые зависимости), Act (ровно один вызов тестируемого метода), Assert (проверка результата). Держит тесты читаемыми: три блока, один сценарий. Arrange может прятаться в @Before-фикстуре, но Act остаётся один — иначе тест проверяет смесь действий и падение непонятно.",
+      "tags": ["testing", "junit", "aaa"],
+      "difficulty": 0.2
+    },
+    {
+      "id": "tsu_002",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Почему для тестирования ViewModel с delay() нельзя довольствоваться обычным runBlocking?",
+      "options": [
+        "runBlocking не управляет виртуальным временем: delay() реально ждёт, тесты становятся медленными и нестабильными",
+        "runBlocking запрещён в unit-тестах на JVM",
+        "runBlocking не поддерживает @Before-аннотации",
+        "runBlocking не умеет запускать несколько корутин"
+      ],
+      "correctAnswer": "0",
+      "explanation": "runTest даёт TestScope с виртуальным временем: состояние теста перематывается (advanceTimeBy, advanceUntilIdle), delay() не блокирует реальные часы. runBlocking тянет реальное время — «sleep-овские» тесты флакают на медленных CI-агентах. runTest — дефолт для кода с delay/таймерами; runBlocking — только для простых suspend-вызовов.",
+      "tags": ["testing", "coroutines", "runtest"],
+      "difficulty": 0.4
+    },
+    {
+      "id": "tsu_003",
+      "type": "INPUT",
+      "level": 2,
+      "text": "Метод объекта Dispatchers, подменяющий Main-диспетчер в тестах (останется одно слово с точкой): что вызывается?",
+      "correctAnswer": "setMain",
+      "explanation": "Dispatchers.setMain(UnconfinedTestDispatcher(...)) в @Before и Dispatchers.resetMain() в @After — канон Test Main Dispatcher. Без подмены viewModelScope/runOnUiThread в JVM-тесте выбросит «Module with the Main dispatcher failed to initialize». Альтернатива — инжектить DispatcherProvider вместо прямого Dispatchers.Main.",
+      "tags": ["testing", "coroutines", "dispatchers"],
+      "difficulty": 0.45
+    },
+    {
+      "id": "tsu_004",
+      "type": "TRUE_FALSE",
+      "level": 2,
+      "text": "runTest() автоматически «перематывает» delay() в тестируемом коде — тест с delay(5000) завершится почти мгновенно.",
+      "options": ["Верно", "Неверно"],
+      "correctAnswer": "0",
+      "explanation": "runTest работает на TestDispatcher с виртуальным временем: advanceTimeBy/advanceUntilIdle «перематывают» время, delay() не блокирует реальные часы — тесты детерминированы. Ключевое условие: все корутины в тесте живут на TestDispatcher; код, который сам форсирует Dispatchers.Default или IO, привнесёт реальное время.",
+      "tags": ["testing", "coroutines", "runtest"],
+      "difficulty": 0.35
+    },
+    {
+      "id": "tsu_005",
+      "type": "CARD",
+      "level": 3,
+      "text": "Спроектируйте unit-тест ViewModel, который загружает список через Repository и эмитит Loading → Content → Error, если Repository кидает исключение.",
+      "correctAnswer": "### Конструктивы\n- FakeRepository (не mock): `override suspend fun load() = throw IOException(\"network\")`\n- ViewModel под тест; state — MutableStateFlow в ViewModel\n### Скелет\n```kotlin\n@Test\nfun `fetch error maps to Error state`() = runTest {\n    // Arrange\n    val vm = MyViewModel(FakeLoadingRepo())\n    val states = mutableListOf<State>()\n    val collectorJob = launch(UnconfinedTestDispatcher(testScheduler)) {\n        vm.state.collect { states += it }\n    }\n    // Act\n    vm.load()\n    // Assert\n    assertEquals(listOf(Loading::class, Error::class), states.map { it::class })\n    collectorJob.cancel()\n}\n```\n### Ключевые решения\n- Dispatchers.setMain(UnconfinedTestDispatcher(testScheduler)) в @Before, resetMain() в @After\n- виртуальное время через testScheduler — если внутри есть delay\n- сравнивать состояния по типу и ключевым данным, а не по полному объекту с нерелевантной подробностью",
+      "explanation": "Совет: resetMain()/clearAllMocks в @After обязательны — иначе тесты 'крос-контаминируют' контекст Main для следующих классов.",
+      "tags": ["testing", "viewmodel", "runtest", "aaa"],
+      "difficulty": 0.6
+    },
+    {
+      "id": "tsu_006",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Что даёт @ParameterizedTest в JUnit?",
+      "options": [
+        "Один тест-метод прогоняется на множестве входных наборов, каждый кейс отображается в отчёте отдельно",
+        "Тест автоматически выполняется параллельно в нескольких потоках",
+        "JUnit перезапускает тест, если тот флаканно упал (retry)",
+        "Позволяет вызвать несколько тестовых классов в одной сессии"
+      ],
+      "correctAnswer": "0",
+      "explanation": "@ParameterizedTest + @MethodSource/@CsvSource — один тест-метод × множество входов, каждый кейс виден отдельно в отчёте. Это DRY для data-driven логики (валидация, парсинг, конверсии). Параллельность и retry — другие механизмы (JUnit Reliable Runner, Gradle parallel), не параметризация.",
+      "tags": ["testing", "junit", "parameterized"],
+      "difficulty": 0.4
+    },
+    {
+      "id": "tsu_007",
+      "type": "TRUE_FALSE",
+      "level": 1,
+      "text": "Тест, где Act-часть содержит два последовательных независимых вызова метода, обычно нарушает принцип «один тест — одно действие».",
+      "options": ["Верно", "Неверно"],
+      "correctAnswer": "0",
+      "explanation": "Два независимых вызова размывают тест: при провале непонятно, какой из них сломался, и тест становится смесью проверок. Правильное решение — по одному Act на тест. Исключение — «set up»-шаги, которые оформляют Arrange/fixtures (например, подготовка состояния через API), но и их лучше держать в @Before/фикстурах.",
+      "tags": ["testing", "junit", "aaa"],
+      "difficulty": 0.35
+    }
+  ]
+}

@@ -1,0 +1,85 @@
+{
+  "version": 1,
+  "topic": "compose-state",
+  "questions": [
+    {
+      "id": "cmps_001",
+      "type": "MCQ",
+      "level": 1,
+      "text": "Что произойдёт со значением remember { mutableStateOf(\"\") } при повороте экрана?",
+      "options": [
+        "Значение потеряется: remember переживает только recomposition, а при пересоздании Activity композиция строится заново",
+        "Значение сохранится: remember восстановит его из Bundle",
+        "Значение сохранится автоматически, но только для неотрицательных чисел",
+        "Приложение упадёт с IllegalStateException"
+      ],
+      "correctAnswer": "0",
+      "explanation": "remember — кэш в композиции: выживает между recomposition, но не между пересозданиями Activity (конфигурация, process death). Для выживания есть rememberSaveable с Bundle/Saver-механизмом. Ловушка «из Bundle» — это поведение rememberSaveable, не remember; для сложных типов там же пригодится кастомный Saver.",
+      "tags": ["compose", "remember", "state"],
+      "difficulty": 0.35
+    },
+    {
+      "id": "cmps_002",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Что такое state hoisting в Compose?",
+      "options": [
+        "Перенос состояния к вызывающему компоненту: stateless-компонент получает value и onValueChange — переиспользуемость, состояние в одном месте, нет внутренностей",
+        "Создание состояния внутри компонента через remember",
+        "Хранение состояния в static-полях объекта",
+        "Продублировать состояние в XML-атрибутах View-системы"
+      ],
+      "correctAnswer": "0",
+      "explanation": "Hoisting — паттерн: composable поднимает своё состояние наверх, возвращая value + запросы к нему (onValueChange, onClick). Компонент становится stateless: проще тестировать и переиспользовать, состояние живёт ровно в одном владельце (обычно ViewModel или родительский контейнер). Ловушка «создание внутри» — это как раз противоположность hoisting, stateful-компонент.",
+      "tags": ["compose", "state-hoisting", "stateless"],
+      "difficulty": 0.45
+    },
+    {
+      "id": "cmps_003",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Экран читает заметку из ViewModel, но TextField дополнительно хранит свою копию текста в remember { }. Что случится после навигации «назад → вперёд»?",
+      "options": [
+        "Рассинхрон: у TextField свой локальный кэш, у ViewModel — своя версия; единый источник истины нарушен",
+        "Compose сам синхронизирует обе копии автоматически",
+        "TextField перезапишет ViewModel — это единственный вариант синхронизации",
+        "Ничего: remember-состояние бессмертно и совпадёт всегда"
+      ],
+      "correctAnswer": "0",
+      "explanation": "Две копии одного состояния — восстановятся по-разному: remember-копия пропадёт, ViewModel останется. Синхронизация вручную рано или поздно расползётся. Канон: TextField(value = uiState.text, onValueChange = vm::onTextChange) — состояние вниз, событие вверх, единственный owner — ViewModel. Локальный remember в поле допустим только для чисто визуального, никогда не синхронизируемого состояния.",
+      "tags": ["compose", "single-source-of-truth", "textfield"],
+      "difficulty": 0.45
+    },
+    {
+      "id": "cmps_004",
+      "type": "TRUE_FALSE",
+      "level": 2,
+      "text": "rememberSaveable сохраняет состояние и при повороте экрана, и при смерти процесса — для простых типов (примитивы, String) автоматически, сложные требуют Saver.",
+      "options": ["Верно", "Неверно"],
+      "correctAnswer": "0",
+      "explanation": "rememberSaveable работает через SavedStateRegistry + Bundle: примитивы и Serializable пишутся без усилий, для остальных используйте Saver (rememberSaveable(stateSaver = ...)). Ловушка: произвольный объект без своего Saver в Bundle не поместится — упадёт или потеряется; верьте типам, которые умеет Bundle.",
+      "tags": ["compose", "rememberSaveable", "savedstate"],
+      "difficulty": 0.4
+    },
+    {
+      "id": "cmps_005",
+      "type": "INPUT",
+      "level": 1,
+      "text": "Назовите camelCase-функцию Compose, создающую наблюдаемое изменяемое состояние (в паре с remember она делает обычный паттерн remember { ... }).",
+      "options": null,
+      "correctAnswer": "mutableStateOf",
+      "explanation": "mutableStateOf(value) возвращает MutableState<T>: чтение подписывает scope композиции, при мутации планируется recomposition. Промежуточные вычисления лучше поднимать через derivedStateOf, не путая их с мутацией источника. С remember это стандарт де-факто для UI-состояния уровня компонента.",
+      "tags": ["compose", "mutableStateOf", "state"],
+      "difficulty": 0.2
+    },
+    {
+      "id": "cmps_006",
+      "type": "CARD",
+      "level": 3,
+      "text": "Спроектируйте экран логина в духе state down / events up: TextField, кнопка «Войти», ViewModel.",
+      "options": null,
+      "correctAnswer": "- stateless-компонент: LoginScreen(state: LoginUiState, onTextChange: (String) -> Unit, onLoginClick: () -> Unit) — никаких remember внутри\n- stateful-родитель собирает: val state by viewModel.uiState.collectAsStateWithLifecycle() и передаёт вниз\n- Единый источник истины: ViewModel (StateFlow<LoginUiState>) владеет текстом, валидностью, isInFlight\n- UDF: события вверх (onTextChange, onLoginClick), состояние вниз (state) — TextField(value = state.text, onValueChange = viewModel::onTextChange)\n- Ловушка: локальная remember-копия текста в TextField — рассинхрон при возвращении на экран (single source of truth = ViewModel)",
+      "explanation": "Подсказка: где хранить состояние текста и что должен знать/не знать stateless-компонент о ViewModel."
+    }
+  ]
+}

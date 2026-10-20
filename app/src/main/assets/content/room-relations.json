@@ -1,0 +1,96 @@
+{
+  "version": 1,
+  "topic": "room-relations",
+  "questions": [
+    {
+      "id": "rmr_001",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Как Room выполняет запрос к POJO с @Relation(parentColumn=\"id\", entityColumn=\"topicId\")?",
+      "options": [
+        "Выполняет два запроса (родители + дочерние) и склеивает результат по ключу",
+        "Строит один JOIN в SQL",
+        "Делает N запросов — по одному на каждую родительскую строку",
+        "@Relation работает только с вложенными таблицами SQLite"
+      ],
+      "correctAnswer": "0",
+      "explanation": "Под капотом Room декомпозирует @Relation: сначала выбираются «родители», затем одним батч-запросом — все связанные строки, которые склеиваются в памяти по ключу (а не JOIN и не N+1). Если нужен именно JOIN — пишите @Query с JOIN и POJO-результатflat, без @Relation.",
+      "tags": ["room", "relation"],
+      "difficulty": 0.45
+    },
+    {
+      "id": "rmr_002",
+      "type": "TRUE_FALSE",
+      "level": 2,
+      "text": "Поле с @Relation можно объявить прямо внутри @Entity-класса — Room сохранит его в той же таблице.",
+      "options": ["Верно", "Неверно"],
+      "correctAnswer": "1",
+      "explanation": "@Relation работает только в POJO/обёртке, которую возвращает @Query — не в Entity (Room считает, что entity это прямое отображение на таблицу). @Embedded — обратная история: вложенный объект раскладывается в колонки той же таблицы. Ловушка: путаница @Relation (объединение по ключу при чтении) и @Embedded (денормализация при хранении).",
+      "tags": ["room", "relation", "embedded"],
+      "difficulty": 0.45
+    },
+    {
+      "id": "rmr_003",
+      "type": "INPUT",
+      "level": 1,
+      "text": "Какая аннотация Room используется в POJO-обёртке для связи «один-ко-многим» (например, Topic со списком Question)?",
+      "correctAnswer": "@Relation",
+      "explanation": "@Relation(parentColumn, entityColumn, entityType) в обёртке вроде TopicWithQuestions связывает родителя с List<дочерних>. Вызывается от POJO, возвращаемого @Query по родительской таблице, — Room сам дополнит список. Для many-to-many туда же добавляется associateBy = Junction.",
+      "tags": ["room", "relation"],
+      "difficulty": 0.3
+    },
+    {
+      "id": "rmr_004",
+      "type": "MCQ",
+      "level": 3,
+      "text": "Связь many-to-many между Student и Course. Как правильно описать её в Room?",
+      "options": [
+        "Junction-таблица (descriptor) через @Relation(associateBy = Junction(StudentCourseCrossRef::class))",
+        "Обойтись одним JOIN-запросом и вернуть MutableList<Pair<Student, Course>>",
+        "@Embedded с обеих сторон — Room сам умножит строки",
+        "Классы-обёртки StudentWithCourses без промежуточной таблицы — Room сам выведет связь"
+      ],
+      "correctAnswer": "0",
+      "explanation": "Классический junction (промежуточная таблица с @PrimaryKey по двум FK) плюс @Relation с associateBy = Junction(...): Room делает запросы к трём таблицам и склеивает. JOIN с Pair — рабочий, но меняет семантику (дублиpeating строк) и не поддерживает реактивность на уровне обёртки. Room не «выводит» связи сам — нужна явная junction-схема.",
+      "tags": ["room", "junction", "many-to-many"],
+      "difficulty": 0.55
+    },
+    {
+      "id": "rmr_005",
+      "type": "CARD",
+      "level": 3,
+      "text": "Вам нужен список тем, где каждая тема содержит только заголовки её вопросов (DTO без лишних полей). Опишите 2 подхода к частичному DTO в Room.",
+      "correctAnswer": "### Варианты\n1. **POJO + @Relation + nested DTO** — обёртка `TopicWithQuiz` с `@Relation(entity = QuestionEntity::class, entityColumn = \"topicId\").projection = [\"text\"]` возвращает только колонку `text`\n2. **JOIN + flat POJO** — `@Query(\"SELECT t.id, t.title, q.text FROM topics t JOIN questions q ON q.topicId = t.id\")` возвращает flat `TopicQuizRow`; склейку (группировку по id) делают в map:\n```kotlin\nrows.groupBy({ it.id }) { _ -> ... }\n.map { (id, rs) -> TopicDto(id, rs.map { it.text }) }\n```\n3. `@Embedded` — не годится: это денормализация в одной таблице, а не связь двух таблиц",
+      "explanation": "Совет: @Relation + projection — чистый путь без SQL; JOIN + POJO — быстрее для больших объёмов, но склейку держите на корню Kоtlin-слоя, а не в DAO.",
+      "tags": ["room", "dto", "projection"],
+      "difficulty": 0.6
+    },
+    {
+      "id": "rmr_006",
+      "type": "TRUE_FALSE",
+      "level": 2,
+      "text": "@Embedded хранит данные вложенного объекта в колонках той же таблицы (денормализация), а не в отдельной таблице.",
+      "options": ["Верно", "Неверно"],
+      "correctAnswer": "0",
+      "explanation": "Именно так: @Embedded «вклкадывает» поля вложенного класса в ту же таблицу — это полезно для composition (например, Address внутри UserEntity). Для конфликта имён с внешними колонками используют @Embedded(prefix = \"addr_\"). Ловушка: пропустить @Embedded(prefix) и получить SQL-контекст имен в миграции.",
+      "tags": ["room", "embedded"],
+      "difficulty": 0.4
+    },
+    {
+      "id": "rmr_007",
+      "type": "MCQ",
+      "level": 2,
+      "text": "У @Relation(parentColumn=\"id\", entityColumn=\"topicId\") — что означают эти колонки?",
+      "options": [
+        "parentColumn — колонка родительской таблицы (topic.id), entityColumn — колонка дочерней таблицы (question.topicId)",
+        "parentColumn — колонка в дочерней, entityColumn — в родительской",
+        "Обе колонки обязаны быть в одной таблице",
+        "parentColumn — это первичный ключ, entityColumn — это внешний ключ, всегда по порядку"
+      ],
+      "correctAnswer": "0",
+      "explanation": "Семантика: parentColumn = ключ на стороне родителя (обычно id), entityColumn = FK на стороне ребёнка / сущности из entity. Частая ошибяя — путать направления (сдвигаясь на «какая что ссылается»). Для many-to-many с Junction: parentColumn/entityColumn ссылаются на родителя, а association/junctionColumn — на junction-поля.",
+      "tags": ["room", "relation"],
+      "difficulty": 0.45
+    }
+  ]
+}

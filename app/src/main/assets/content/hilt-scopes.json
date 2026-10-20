@@ -1,0 +1,96 @@
+{
+  "version": 1,
+  "topic": "hilt-scopes",
+  "questions": [
+    {
+      "id": "hls_001",
+      "type": "MCQ",
+      "level": 1,
+      "text": "Binding с @Singleton в Hilt устанавливается в какой компонент?",
+      "options": [
+        "SingletonComponent — живёт весь процесс приложения",
+        "ActivityComponent — один экземпляр на каждую Activity",
+        "ViewModelComponent — живёт пока жива ViewModel",
+        "Любой — скоуп не привязан к компоненту"
+      ],
+      "correctAnswer": "0",
+      "explanation": "@Singleton — скоуп SingletonComponent, корневого компонента Hilt: экземпляр живёт весь процесс. @ActivityRetainedScoped — ActivityRetainedComponent (переживает config change), @ViewModelScoped — ViewModelComponent, @ActivityScoped — ActivityComponent. Ловушка: скоуп обязан соответствовать компоненту из @InstallIn — иначе ошибка компиляции.",
+      "tags": ["hilt", "scopes", "singleton"],
+      "difficulty": 0.3
+    },
+    {
+      "id": "hls_002",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Что означает @ViewModelScoped на биндинге, инжектируемом в ViewModel?",
+      "options": [
+        "Один экземпляр на каждую конкретную ViewModel; живёт до её очистки",
+        "Один экземпляр для всех ViewModel приложения",
+        "Экземпляр переживает поворот экрана и process death",
+        "Разрешает биндинг только с @Named-квалификатором"
+      ],
+      "correctAnswer": "0",
+      "explanation": "@ViewModelScoped держит объект в ViewModelComponent: один экземпляр на ViewModel, переиспользуется в её пределах. Чтобы зависимость пережила поворот экрана, нужен @ActivityRetainedScoped (компонент связан с ViewModelStore, умирает при finish/process death). Этот скоуп хорош для ресурсов с жизненным циклом ViewModel.",
+      "tags": ["hilt", "scopes", "viewmodel"],
+      "difficulty": 0.45
+    },
+    {
+      "id": "hls_003",
+      "type": "TRUE_FALSE",
+      "level": 2,
+      "text": "Биндинг без скоупа создаёт новый экземпляр при каждом запросе зависимости.",
+      "options": ["Верно", "Неверно"],
+      "correctAnswer": "0",
+      "explanation": "Unscoped binding — это фабрика: новый объект на каждую инъекцию. Скоупы кэшируют первый экземпляр в компоненте. @Reusable — промежуточный вариант: разрешает переиспользование, но не гарантирует единственность. Ловушка: принять unscoped за синглтон «по умолчанию» — источник неожиданного состояния и утечек.",
+      "tags": ["hilt", "scopes", "unscoped"],
+      "difficulty": 0.4
+    },
+    {
+      "id": "hls_004",
+      "type": "INPUT",
+      "level": 1,
+      "text": "Какой компонент указывается в @InstallIn для модуля, поставляющего @Singleton-биндинги?",
+      "correctAnswer": "SingletonComponent",
+      "explanation": "@Module @InstallIn(SingletonComponent::class) — модуль в корне приложения, @Singleton — его скоуп. Фейковый вариант: @ApplicationComponent — имя из Dagger 2 времён; в Hilt компонент переименован, и @ApplicationComponent не существует.",
+      "tags": ["hilt", "modules", "installin"],
+      "difficulty": 0.3
+    },
+    {
+      "id": "hls_005",
+      "type": "CARD",
+      "level": 3,
+      "text": "Перечислите основные компоненты Hilt с их скоупами и сроком жизни.",
+      "correctAnswer": "### Компоненты и скоупы\n- `SingletonComponent` / `@Singleton` — весь процесс приложения\n- `ActivityRetainedComponent` / `@ActivityRetainedScoped` — переживает config change, умирает при finish/process death\n- `ViewModelComponent` / `@ViewModelScoped` — живёт ровно одну ViewModel\n- `ActivityComponent` / `@ActivityScoped` — одну Activity; НЕ переживает поворот экрана\n- `FragmentComponent` / `@FragmentScoped` — один Fragment\n- `ViewComponent` / `@ViewScoped` — одну View\n### Иерархия\n- потомок видит биндинги родителя (Singleton → ViewModel), наоборот — нельзя\n- скоуп биндинга обязан совпадать со скоупом компонента модуля, иначе ошибка компиляции",
+      "explanation": "Совет: не путайте @ActivityScoped и @ActivityRetainedScoped — первый умирает при повороте, второй доживает до finish, как ViewModel.",
+      "tags": ["hilt", "scopes", "components"],
+      "difficulty": 0.6
+    },
+    {
+      "id": "hls_006",
+      "type": "MCQ",
+      "level": 3,
+      "text": "Что произойдёт, если в модуль @InstallIn(ViewModelComponent::class) добавить @Singleton-биндинг?",
+      "options": [
+        "Ошибка компиляции: скоуп биндинга не совместим с компонентом",
+        "Работает: объект станет синглтоном всего приложения",
+        "Работает: объект уникален для каждой ViewModel",
+        "Работает: объект пересоздаётся на каждый запрос"
+      ],
+      "correctAnswer": "0",
+      "explanation": "Скоуп биндинга должен совпадать со скоупом компонента, «содержащего» модуль: @Singleton ↔ SingletonComponent, @ViewModelScoped ↔ ViewModelComponent. Несовпадение — compile-time ошибка. Заметка: биндинги без скоупа допустимы в любом компоненте — просто дают новый экземпляр на каждый запрос.",
+      "tags": ["hilt", "scopes", "modules"],
+      "difficulty": 0.55
+    },
+    {
+      "id": "hls_007",
+      "type": "TRUE_FALSE",
+      "level": 2,
+      "text": "Биндинг из SingletonComponent доступен для инъекции в ViewModelComponent и ActivityComponent.",
+      "options": ["Верно", "Неверно"],
+      "correctAnswer": "0",
+      "explanation": "Компоненты Hilt образуют дерево: потомок видит биндинги родителя. @Singleton-биндинг доступен всем вложенным компонентам. Обратное невозможно: @ViewModelScoped-объект нельзя инжектить в Repository, живущий весь процесс, — это ошибка компиляции.",
+      "tags": ["hilt", "scopes", "hierarchy"],
+      "difficulty": 0.4
+    }
+  ]
+}

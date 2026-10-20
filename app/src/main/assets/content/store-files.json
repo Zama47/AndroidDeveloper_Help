@@ -1,0 +1,87 @@
+{
+  "version": 1,
+  "topic": "store-files",
+  "questions": [
+    {
+      "id": "strf_001",
+      "type": "MCQ",
+      "level": 1,
+      "text": "Файл сохранён в context.filesDir (internal storage). Что верно про доступ к нему?",
+      "options": [
+        "Любое приложение может его прочитать с разрешения пользователя",
+        "Каталог приватен для приложения; доступ другим приложениям возможен только через ContentProvider/FileProvider",
+        "Он доступен только пока приложение на переднем плане",
+        "Для чтения нужен WRITE_EXTERNAL_STORAGE"
+      ],
+      "correctAnswer": "1",
+      "explanation": "Internal storage (filesDir, cacheDir) — приватная песочница приложения, обычно недоступная другим приложениям (права SELinux/пермиссии ОС). Раздать файл интент-ом или контент-запросом можно через FileProvider (подкласс ContentProvider). Ловушка: WRITE_EXTERNAL_STORAGE к internal-файлам не имеет отношения.",
+      "tags": ["files", "storage"],
+      "difficulty": 0.3
+    },
+    {
+      "id": "strf_002",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Ваше приложение генерирует файл документа и хочет дать его открыть другой странице приложения (например, через ACTION_VIEW). Как корректно?",
+      "options": [
+        "Положить файл в external storage root и передать прямой URI",
+        "Использовать FileProvider: сгенерировать content://-URI и передать его в Intent с FLAG_GRANT_READ_URI_PERMISSION",
+        "Конвертировать файл в Base64 и вставить в Intent",
+        "скопировать файл в Downloads без разрешения"
+      ],
+      "correctAnswer": "1",
+      "explanation": "С Android 7 прямой file://-URI превратится в FileUriExposedException — меж-приложенный обмен только через content:// от FileProvider (или собственного ContentProvider). Конфиг: file_paths.xml в res/xml + <provider> в манифесте, getUriForFile() + Intent.addFlags(FLAG_GRANT_READ_URI_PERMISSION). Ловушка: путают grant-разрешения с постоянным доступом.",
+      "tags": ["files", "fileprovider"],
+      "difficulty": 0.5
+    },
+    {
+      "id": "strf_003",
+      "type": "TRUE_FALSE",
+      "level": 1,
+      "text": "Для сохранения файлов в собственном каталоге приложения на внешнем хранилище (context.getExternalFilesDir()) разрешение WRITE_EXTERNAL_STORAGE не требуется.",
+      "options": ["Верно", "Неверно"],
+      "correctAnswer": "0",
+      "explanation": "App-specific каталог на внешнем хранилище (Android/data/<pkg>/files) — часть песочницы приложения: доступ без пермишенов с API 19 и будет удалён системой при удалении приложения. Разрешения нужны лишь для General access: чтению чужих медиа (READ_MEDIA_IMAGES и т.п. на Android 13+) и записи в общие коллекции через MediaStore.",
+      "tags": ["files", "permissions"],
+      "difficulty": 0.35
+    },
+    {
+      "id": "strf_004",
+      "type": "INPUT",
+      "level": 2,
+      "text": "Как называется API Android для работы с общими медиа-коллекциями (фото, видео, аудио) без прямых путей к файлам? Введите имя (одно слово).",
+      "options": null,
+      "correctAnswer": "MediaStore",
+      "explanation": "MediaStore — системный провайдер индексов медиафайлов: вставкам через insert(ContentResolver, ContentValues), чтение через URI content://media/... На Android 10+ scoped storage прячет прямые пути, доступ к чужим медиа — READ_MEDIA_IMAGES/VIDEO/AUDIO (или ACCESS_MEDIA_LOCATION для точных координат). Для записи фото в общую галерею insert в MediaStore — канонично.",
+      "tags": ["mediastore", "storage"],
+      "difficulty": 0.4
+    },
+    {
+      "id": "strf_005",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Чем cacheDir/getExternalCacheDir отличаются от filesDir/getExternalFilesDir?",
+      "options": [
+        "Ничем, это синонимы",
+        "Кэш-каталог — временные данные, система может их очистить при нехватке места; filesDir — постоянные данные приложения",
+        "Кэш-каталог виден другим приложениям, filesDir — нет",
+        "filesDir доступен только для чтения"
+      ],
+      "correctAnswer": "1",
+      "explanation": "cacheDir предназначен для возобновляемых данных (загруженные картинки, расчёты): система может чистить его при нехватке места — данные должны быть восстановимы. filesDir — персистентное хранилище данных приложения. Оба каталога приватны. Правило: нельзя класть уникальные пользовательские данные в cacheDir.",
+      "tags": ["files"],
+      "difficulty": 0.4
+    },
+    {
+      "id": "strf_006",
+      "type": "CARD",
+      "level": 3,
+      "text": "Распределите по правильным местам хранения с маленьким обоснованием: (1) jpeg с камеры, отправляемый на сервер; (2) сгенерированный пользователем PDF-экспорт, который он хочет сохранить в Downloads; (3) скачанные превью-картинки для списка; (4) файл настроек «тема/язык».",
+      "options": null,
+      "correctAnswer": "- jpeg с камеры: временно — cacheDir или app-specific getExternalFilesDir, после загрузки на сервер → удалить; можно при этом вставлять в MediaStore, если нужно показать в галерее\n- PDF-экспорт в Downloads: на Android 10+ — MediaStore insert в коллекцию Downloads без разрешений (посредством системных путей), FileProvider для раздания интент-ом\n- Превью-картинки: кэш (image loader сам раскидает по cacheDir/памяти), систему можно чистить; переживать потерю не надо\n- настройки «тема/язык»: Preferences DataStore (мелкие кэш key-value), не файлы",
+      "explanation": "Смысл вопроса — область видимости решения: private vs общие коллекции, perspective (MediaStore с API 29) vs FileProvider для раздания, а настройки — в DataStore. Ловушки: живое сообщение «файл без пермишена» относится к app-specific dir, а не к общему хранилищу; превью в Cache — норма и ожидается системой очистки.",
+      "tags": ["files", "mediastore", "design"],
+      "difficulty": 0.6
+    }
+  ]
+}

@@ -1,0 +1,101 @@
+{
+  "version": 1,
+  "topic": "arch-mvvm",
+  "questions": [
+    {
+      "id": "arcv_001",
+      "type": "MCQ",
+      "level": 1,
+      "text": "Почему состояние в ViewModel не теряется при повороте экрана?",
+      "options": [
+        "ViewModelStoreOwner (Activity/Fragment) сохраняет ViewModelStore при пересоздании из-за изменения конфигурации; окончательно ViewModel очищается в onCleared",
+        "ViewModel ловит onConfigurationChanged и сам восстанавливает поля",
+        "ViewModel помечен как static, поэтому экземпляр один на весь процесс",
+        "Система сериализует все поля ViewModel в Bundle при каждом повороте"
+      ],
+      "correctAnswer": "0",
+      "explanation": "При конфигурационном пересоздании Activity цепляет старый ViewModelStore, экземпляры выживают, а onCleared вызывается только при окончательном уходе с экрана. Ловушки: static — отдельный анти-паттерн (утечка контекста), сериализация в Bundle — это onSaveInstanceState/SavedStateHandle, предназначенное для переживания смерти процесса, а не поворота.",
+      "tags": ["architecture", "viewmodel", "lifecycle"],
+      "difficulty": 0.3
+    },
+    {
+      "id": "arcv_002",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Какое сравнение LiveData и StateFlow корректно?",
+      "options": [
+        "LiveData знает жизненный цикл из коробки (активна при START), но setValue — только с main-потока и завязана на Android; StateFlow — корутиновский, платформонезависимый, конфлюирует значения, для привязки к lifecycle нужен repeatOnLifecycle",
+        "LiveData можно обновлять из любого потока через setValue, StateFlow нельзя",
+        "StateFlow работает только внутри Compose, LiveData — везде",
+        "StateFlow ничего не хранит между подписками, LiveData хранит"
+      ],
+      "correctAnswer": "0",
+      "explanation": "LiveData выигрывает на «жизненном цикле из коробки», но упирается в main-thread setValue и Android-зависимость: бизнес-логику хочется на корутинах. StateFlow — value и конлюация (conflate), работает вне Android; в UI привязывается через repeatOnLifecycle или collectAsStateWithLifecycle, обратно есть asLiveData. Ловушка «StateFlow ничего не хранит» — наоборот, хранит value по определению.",
+      "tags": ["architecture", "livedata", "stateflow"],
+      "difficulty": 0.5
+    },
+    {
+      "id": "arcv_003",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Почему не стоит хранить одноразовые события (навигация, Snackbar) в StateFlow?",
+      "options": [
+        "StateFlow хранит последнее значение и при повторной подписке (возврат на экран, поворот) событие проиграется заново; для one-shot обычно SharedFlow с replay = 0 или Channel",
+        "StateFlow нельзя эмитить по клику из UI",
+        "События в StateFlow не типизируются компилятором",
+        "События запрещены в MVVM — только напрямую из View"
+      ],
+      "correctAnswer": "0",
+      "explanation": "StateFlow — «последнее состояние» по определению: он обязан сохранять value, для событий это дублирование при повторной подписке. Одноразовость дают SharedFlow(replay = 0)/Channel + receiveAsFlow, либо явный consumed-флаг с сбросом в ViewModel. Ловушка: хранить навигацию в состоянии «сбросить после consume» — ручная хрупкая возня вместо готового механизма.",
+      "tags": ["architecture", "events", "sharedflow"],
+      "difficulty": 0.55
+    },
+    {
+      "id": "arcv_004",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Чем подписка на StateFlow через repeatOnLifecycle(STARTED) лучше lifecycleScope.launch { collect }?",
+      "options": [
+        "repeatOnLifecycle отменяет поток при STOP и перезапускает в START — UI не обновляется и ресурсы не тратятся, пока экран невидим",
+        "repeatOnLifecycle работает только в Compose",
+        "Разницы нет — это синонимы одного вызова",
+        "lifecycleScope.launch вообще не собирает Flow"
+      ],
+      "correctAnswer": "0",
+      "explanation": "lifecycleScope.launch привязан к жизненному циклу в целом: поток собирает и когда экран в фоне — вредные обновления и лишняя работа. repeatOnLifecycle(STARTED) означает: подписка живёт только между START/STOP — экономия батареи/сети и корректное поведение уходит в фон. Ловушка «синонимы» — Android-документация прямо рекомендует repeatOnLifecycle вместо подписки в голом lifecycleScope.launch.",
+      "tags": ["architecture", "lifecycle", "repeatOnLifecycle"],
+      "difficulty": 0.5
+    },
+    {
+      "id": "arcv_005",
+      "type": "TRUE_FALSE",
+      "level": 1,
+      "text": "ViewModel не должен держать ссылку на Activity/Fragment/View.",
+      "options": ["Верно", "Неверно"],
+      "correctAnswer": "0",
+      "explanation": "ViewModel живёт дольше View — ссылка на Activity/Fragment утащит мёртвый экран и вызовет утечку. Связь — только через события/состояние, а не вызовы View. Ловушка: AndroidViewModel работает с Application — это допустимо, Application живёт дольше ViewModel; конкретный screen-контекст — нет.",
+      "tags": ["architecture", "viewmodel", "memory"],
+      "difficulty": 0.25
+    },
+    {
+      "id": "arcv_006",
+      "type": "INPUT",
+      "level": 1,
+      "text": "Назовите camelCase-метод ViewModel, который вызывается окончательно перед удалением (там закрывают ресурсы, дожимают все отмены).",
+      "options": null,
+      "correctAnswer": "onCleared",
+      "explanation": "onCleared() — окончательная очистка ViewModel: она уходит навсегда. viewModelScope отменяется до onCleared, так что ручная отмена scope обычно не нужна, но закрытие зависимых ресурсов — валидное место. Для переживания смерти процесса используйте SavedStateHandle, а не поля ViewModel.",
+      "tags": ["architecture", "viewmodel", "onCleared"],
+      "difficulty": 0.2
+    },
+    {
+      "id": "arcv_007",
+      "type": "CARD",
+      "level": 3,
+      "text": "Спроектируйте API ViewModel для экрана логина: состояние, события, связь с UI.",
+      "options": null,
+      "correctAnswer": "- Состояние: StateFlow<LoginUiState> в ViewModel (email/password, isValid, isInFlight, errorMessage) — единый источник истины, collectAsStateWithLifecycle / repeatOnLifecycle в UI\n- События UI: fun onEmailChange(text), fun onPasswordChange(text), fun onLoginClick() — императивные обработчики UDF, View никогда не мутирует состояние напрямую\n- Одноразовые события (навигация «успех», Snackbar ошибки): SharedFlow с replay = 0 / Channel + receiveAsFlow, отдельный от StateFlow\n- Ресурсы: viewModelScope для корутин, репозиторий с suspend-функциями и внутренним withContext(IO)\n- Ловушка: не хранить View/Context в ViewModel; не пихать события в StateFlow — дублируются при повторной подписке",
+      "explanation": "Подсказка: разделите state (переживает подписку) и event (одноразовый), покажите сигнатуры."
+    }
+  ]
+}

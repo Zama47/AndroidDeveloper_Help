@@ -1,0 +1,87 @@
+{
+  "version": 1,
+  "topic": "views-recycler",
+  "questions": [
+    {
+      "id": "vvr_001",
+      "type": "MCQ",
+      "level": 1,
+      "text": "Из каких трёх ключевых компонентов состоит RecyclerView?",
+      "options": [
+        "Adapter, ViewHolder, LayoutManager",
+        "Activity, Fragment, ViewModel",
+        "Cursor, CursorAdapter, ListView",
+        " inflater, XML, Styles"
+      ],
+      "correctAnswer": "0",
+      "explanation": "Adapter владеет данными и создаёт/привязывает ViewHolder, ViewHolder кэширует ссылки на виджеты элемента, LayoutManager решает, где и как располагать элементы (LinearLayoutManager, GridLayoutManager, StaggeredGridLayoutManager). Дополнительно: ItemDecoration (отступы/линии), ItemAnimator (анимации), RecycledViewPool.",
+      "tags": ["recyclerview"],
+      "difficulty": 0.2
+    },
+    {
+      "id": "vvr_002",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Чем DiffUtil/ListAdapter лучше notifyDataSetChanged()?",
+      "options": [
+        "Работает без адаптера",
+        "Считает минимальный diff по элементам: обновляет только изменённые позиции, включает анимации, требует вычислять в фоне",
+        "Кеширует сетевые ответы",
+        "Ускоряет сортировку списка в потоке UI"
+      ],
+      "correctAnswer": "1",
+      "explanation": "ListAdapter оборачивает AsyncListDiffer: новый список прогоняется через DiffUtil в фоне (сравнение старого/нового), получаются конкретные insert/update/remove/move-операции с точечными анимациями. notifyDataSetChanged() заново перепривязывает всё — скролл дёргается и анимаций нет.",
+      "tags": ["diffutil", "listadapter"],
+      "difficulty": 0.45
+    },
+    {
+      "id": "vvr_003",
+      "type": "TRUE_FALSE",
+      "level": 1,
+      "text": "onCreateViewHolder вызывается нечасто — только когда создаются новые ViewHolder определённого типа; гораздо чаще выполняется onBindViewHolder, переиспользующий ViewHolder из пула.",
+      "options": ["Верно", "Неверно"],
+      "correctAnswer": "0",
+      "explanation": "Суть RecyclerView — переиспользование: inflate и создание ViewHolder дорогие, поэтому они случается только когда пул пуст; привязка данных (onBindViewHolder) в дешёвом цикле скролла выполняется постоянно. Главная цель оптимизации — сделать bind лёгким и не аллоцировать в нём объекты.",
+      "tags": ["recyclerview", "performance"],
+      "difficulty": 0.35
+    },
+    {
+      "id": "vvr_004",
+      "type": "INPUT",
+      "level": 2,
+      "text": "Назовите два ключевых метода DiffUtil.Callback, которые отвечают за «тот же элемент» и «тот же контент». Напишите их имена через запятую.",
+      "options": null,
+      "correctAnswer": "areItemsTheSame, areContentsTheSame",
+      "explanation": "DiffUtil.Callback: areItemsTheSame(oldPos, newPos) — тот же идентификатор элемента (id), areContentsTheSame — данные не изменились (галочка, текст); getChangePayload даёт частичное обновление. Для типовых списков обычно наследуют ListAdapter с DiffUtil.ItemCallback и вручную не пишут notify-вызовы.",
+      "tags": ["diffutil"],
+      "difficulty": 0.45
+    },
+    {
+      "id": "vvr_005",
+      "type": "MCQ",
+      "level": 2,
+      "text": "ViewHolder отскроллился за экран. Что RecyclerView по умолчанию делает с ним?",
+      "options": [
+        "Уничтожает объект и инфлейтит заново при возврате",
+        "Кладёт в Scrap или Cache/Pool (RecycledViewPool) и переиспользует при возврате; для чужого viewType пулы отдельные",
+        "Передаёт в архитектурный компонент на сохранение",
+        "Держит все ViewHolder живыми навсегда"
+      ],
+      "correctAnswer": "1",
+      "explanation": "Ушедшие за экран ViewHolder попадают в Scrap (рядом, может перепривязаться без re-layout) или в Cache/RecycledViewPool (можно делиться между RecyclerView). При возврате вызывается onBindViewHolder без onCreateViewHolder. Разные viewType держат отдельные пулы — не плодите лишние viewType.",
+      "tags": ["recyclerview", "performance"],
+      "difficulty": 0.5
+    },
+    {
+      "id": "vvr_006",
+      "type": "CARD",
+      "level": 3,
+      "text": "Перечислите типичные ошибки, которые делают RecyclerView/Jetpack-список медленным, и что с ними делать.",
+      "options": null,
+      "correctAnswer": "- Дорогие операции и аллокации в onBindViewHolder → вынести создание в onCreateViewHolder, в bind только set-операции\n- notifyDataSetChanged() вместо diff → ListAdapter + DiffUtil\n- Слишком глубокая вложенность item → плоский ConstraintLayout\n- Не включён setHasFixedSize(true) при фиксированной высоте списка — лишние requestLayout-проходы\n- Не задан LayoutManager → краш при первом bind\n- Дорогой onViewDetached (пауза анимаций/обновлений) игнорируется\n- Список из тысяч элементов → Paging 3: страница за страницей вместо загрузки всего сразу",
+      "explanation": "На собесе чаще всего ждут: «bind без аллокаций», «DiffUtil вместо notifyDataSetChanged», «Paging 3 для больших списков». Ключевая метрика — стабильные 16 мс на кадр: акцент на отсутствие jank при быстром скролле.",
+      "tags": ["recyclerview", "performance", "paging"],
+      "difficulty": 0.55
+    }
+  ]
+}

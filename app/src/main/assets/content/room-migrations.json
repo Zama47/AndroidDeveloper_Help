@@ -1,0 +1,96 @@
+{
+  "version": 1,
+  "topic": "room-migrations",
+  "questions": [
+    {
+      "id": "rmm_001",
+      "type": "MCQ",
+      "level": 1,
+      "text": "Вы подняли версию @Database с 1 до 2, но не добавили Migration. Что произойдёт у пользователей с существующей базой?",
+      "options": [
+        "Крэш IllegalStateException при открытии базы",
+        "Room автоматически создаст недостающие таблицы",
+        "База молча останется старой версии, запросы вернут null",
+        "Room пересоздаст базу автоматически"
+      ],
+      "correctAnswer": "0",
+      "explanation": "Без миграции и без fallback Room не знает, как привести схему к новой версии, и бросает IllegalStateException («A migration from 1 to 2 was required but not found»). Автоматического «добора» схемы нет. Легальные варианты: Migration, AutoMigration (Room 2.4+) для простых изменений по exported schema, fallbackToDestructiveMigration() — но с потерей данных.",
+      "tags": ["room", "migration", "version"],
+      "difficulty": 0.3
+    },
+    {
+      "id": "rmm_002",
+      "type": "TRUE_FALSE",
+      "level": 2,
+      "text": "fallbackToDestructiveMigration() безопасно включать в релизную сборку — данные пользователя сохранятся.",
+      "options": ["Верно", "Неверно"],
+      "correctAnswer": "1",
+      "explanation": "fallbackToDestructiveMigration сбрасывает базу: все таблицы удаляются и создаются заново. Для чистого кэша допустимо, но для профиля, прогресса и избранного — потеря данных. Практика: fallback — только в debug-сборках или для кэшевых сторов; в release — описанные Migration.",
+      "tags": ["room", "migration", "destructive"],
+      "difficulty": 0.35
+    },
+    {
+      "id": "rmm_003",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Приложение выходило с версиями 1 и 2 (без миграций), теперь версия 3. Как аккуратно поддержать пользователей и v1, и v2?",
+      "options": [
+        "addMigrations(MIGRATION_1_2, MIGRATION_2_3) — Room сам построит цепочку",
+        "Только миграция 1→3; пользователи v2 не смогут обновиться",
+        "Room не поддерживает цепочки — базу нужно пересоздавать с нуля",
+        "Достаточно добавить fallbackToDestructiveMigration — цепочка не нужна"
+      ],
+      "correctAnswer": "0",
+      "explanation": "Room строит граф миграций и находит путь (1→2→3 или прямую 1→3, если добавить MIGRATION_1_3). Регистрация только 2→3 оставит v1-пользователей с крэшем. fallback тоже сработает, но уничтожит данные — это не «аккуратное» решение. Классический кейс: забыть о v1 после нескольких релизов.",
+      "tags": ["room", "migration", "chain"],
+      "difficulty": 0.5
+    },
+    {
+      "id": "rmm_004",
+      "type": "INPUT",
+      "level": 1,
+      "text": "Какой параметр @Database включает экспорт схемы в JSON для тестов и AutoMigration?",
+      "correctAnswer": "exportSchema",
+      "explanation": "exportSchema = true в @Database плюс настройка room.schemaLocation в Gradle сохраняют JSON-схему — её держат в git. На этих файлах работают MigrationTestHelper и AutoMigration (Room 2.4+). Ловушка: забыть exportSchema → компилятор выдаст warning, а воспроизвести схему прошлых версий для тестов станет невозможно.",
+      "tags": ["room", "schema", "export"],
+      "difficulty": 0.3
+    },
+    {
+      "id": "rmm_005",
+      "type": "CARD",
+      "level": 3,
+      "text": "Опишите корректный план миграции для переименования колонки на старых версиях SQLite (ниже 3.25, без ALTER TABLE RENAME COLUMN).",
+      "correctAnswer": "### Классический рецепт\n1) `CREATE TABLE new (...)` — новая схема с нужными изменениями\n2) `INSERT INTO new (...) SELECT ... FROM old` — перенос данных с учётом переименования\n3) `DROP TABLE old`\n4) (если нужно) `ALTER TABLE new RENAME TO old_name` — вернуть исходное имя\n### Детали\n- внутри `Migration.migrate()` всё через `db.execSQL(\"...\")`\n- не забудьте пересоздать индексы и триггеры: `DROP TABLE` их уносит\n- миграция выполняется внутри открытого `SupportSQLiteDatabase`, дополнительного закрытия не нужно\n- тест: `MigrationTestHelper.runMigrationsAndValidate` на сохранённой schema-JSON старой версии",
+      "explanation": "Совет: упомяните AutoMigration (Room 2.4+) — он покрывает простые rename и добавление колонок, но сложные изменения требуют ручной Migration.",
+      "tags": ["room", "migration", "sql"],
+      "difficulty": 0.65
+    },
+    {
+      "id": "rmm_006",
+      "type": "MCQ",
+      "level": 3,
+      "text": "Колонку добавили в Entity, но забыли прописать в миграции (фактическая схема SQLite не совпала с ожидаемой). Что произойдёт?",
+      "options": [
+        "При открытии базы вылетит IllegalStateException: schema validation failed",
+        "Колонка появится автоматически при следующем запуске",
+        "Room молча подстроится и вернёт null по новой колонке",
+        "Пользователь увидит диалог «обновите базу»"
+      ],
+      "correctAnswer": "0",
+      "explanation": "Room при открытии валидирует фактическую схему SQLite против ожидаемой (identity hash, сравнение CREATE TABLE). Несовпадение — IllegalStateException при первом обращении к БД. Это «защитный крэш»: проблему видно быстро, но правильная практика — миграционные тесты с MigrationTestHelper до релиза, а не краш-репорты из продакшена.",
+      "tags": ["room", "migration", "validation"],
+      "difficulty": 0.55
+    },
+    {
+      "id": "rmm_007",
+      "type": "TRUE_FALSE",
+      "level": 2,
+      "text": "Миграционный тест MigrationTestHelper — обычный unit-тест, работающий на JVM без эмулятора.",
+      "options": ["Верно", "Неверно"],
+      "correctAnswer": "1",
+      "explanation": "MigrationTestHelper использует реальные SQLite и InstrumentationRegistry — это instrumented-тест, нужен эмулятор/устройство (на JVM Room не работает с настоящими базами). Точность: Robolectric с его SQLite-эмуляцией может покрывать часть сценариев, но канонический путь — androidTest с schema-файлами из git.",
+      "tags": ["room", "migration", "testing"],
+      "difficulty": 0.5
+    }
+  ]
+}

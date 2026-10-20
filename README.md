@@ -19,8 +19,10 @@
 
 ## ✨ Возможности
 
-- **Темы и статьи** — Kotlin, Android Core, Compose, Coroutines, Room, Hilt,
-  Architecture, System Design, Testing, Performance. Теория + вопросы по теме.
+- **Темы и подразделы** — 13 тем, каждая разбита на подразделы (у каждого —
+  своя теория и свой набор карточек): Kotlin, Android Core, Compose, Coroutines,
+  Room, Hilt, Architecture, System Design, Testing, Performance, Сеть и API,
+  Хранение данных, View-система.
 - **Квизы** — 4 типа вопросов: выбор одного, правда/ложь, ввод ответа,
   открытый вопрос-карточка с самооценкой «знал / не знал».
 - **Свои колоды и карточки** 🗂 — создавай собственные тесты: MCQ-вопросы

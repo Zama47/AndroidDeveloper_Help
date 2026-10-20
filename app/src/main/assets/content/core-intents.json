@@ -1,0 +1,96 @@
+{
+  "version": 1,
+  "topic": "core-intents",
+  "questions": [
+    {
+      "id": "cori_001",
+      "type": "MCQ",
+      "level": 1,
+      "text": "Чем неявный интент (implicit) принципиально отличается от явного (explicit)?",
+      "options": [
+        "Система сама выбирает компонент по action/data/category, а не указывает класс напрямую",
+        "Неявный работает быстрее, потому что не создаёт новый процесс",
+        "Неявный нельзя использовать между приложениями",
+        "Явный требует объявления intent-filter в манифесте"
+      ],
+      "correctAnswer": "0",
+      "explanation": "Явный Intent (`Intent(this, DetailActivity::class.java)`) жёстко указывает компонент своего приложения. Неявный описывает действие (`ACTION_VIEW`, `ACTION_SEND`) и данные — система находит обработчики по `intent-filter` в манифестах, включая другие приложения. intent-filter как раз нужен для неявных, а скорость здесь ни при чём.",
+      "tags": ["intents", "implicit"],
+      "difficulty": 0.25
+    },
+    {
+      "id": "cori_002",
+      "type": "MCQ",
+      "level": 2,
+      "text": "В приложении с Activity launchMode=singleTask пользователь кликает deep link, когда эта Activity уже открыта. Как система доставит Intent?",
+      "options": [
+        "Только через onNewIntent(): onCreate не вызовется",
+        "Создастся новая копия Activity с onCreate",
+        "Покажется chooser, а старую Activity систему выгрузит",
+        "Intent потеряется: singleTask не принимает новые интенты"
+      ],
+      "correctAnswer": "0",
+      "explanation": "При singleTask существующий экземпляр переиспользуется, а новый Intent доставляется в onNewIntent(). Стандартный баг: забыть setIntent(intent) и не перечитать данные — пользователь видит старый содержимое вместо целевого экрана. Если Activity была закрыта, путь шёл бы через onCreate.",
+      "tags": ["deeplink", "launchmode", "onnewintent"],
+      "difficulty": 0.5
+    },
+    {
+      "id": "cori_003",
+      "type": "TRUE_FALSE",
+      "level": 2,
+      "text": "Для корректной обработки deep link достаточно объявить intent-filter с android:autoVerify=true — код в Activity писать не нужно.",
+      "options": ["Верно", "Неверно"],
+      "correctAnswer": "1",
+      "explanation": "autoVerify лишь обеспечивает проверку владения доменом (App Links, assetlinks.json на сервере) и переход без диалога выбора. Данные всё равно нужно извлечь: intent.data в onCreate и повторно в onNewIntent. Манифест только декларирует возможность обработки — без кода Activity никак не отреагирует на URI.",
+      "tags": ["deeplink", "autoverify"],
+      "difficulty": 0.35
+    },
+    {
+      "id": "cori_004",
+      "type": "INPUT",
+      "level": 2,
+      "text": "Какое значение атрибута launchMode гарантирует, что при переходе по deep link не создастся копия уже открытой Activity?",
+      "correctAnswer": "singleTask",
+      "explanation": "singleTask держит единственный экземпляр Activity в своей задаче; повторные Intent доставляются через onNewIntent(). singleTop работает только тогда, когда Activity на вершине стека — между задачами он не спасает. Частая ловушка — поставить singleTask, но не реализовать onNewIntent.",
+      "tags": ["launchmode", "deeplink"],
+      "difficulty": 0.45
+    },
+    {
+      "id": "cori_005",
+      "type": "CARD",
+      "level": 3,
+      "text": "Опишите минимальный корректный набор работ для обработки deep link на свой домен.",
+      "correctAnswer": "### Обязательные части\n- `intent-filter`: `ACTION_VIEW` + `category BROWSABLE` + `category DEFAULT` + `scheme`/`host`, для App Links — `android:autoVerify` и assetlinks.json на сервере\n- `launchMode=\"singleTask\"` (или singleTop) — иначе откроется вторая копия экрана\n- обработка в обоих путях: `onCreate` (getIntent()) и обязательно `onNewIntent` — при singleTask это основной путь\n- парсинг `intent.data` → route/аргументы → навигация на целевой экран\n- если требуется логин — сохранить Intent, открыть auth, вернуть пользователя к цели\n- для ссылки без единого верифицированного обработчика — `Intent.createChooser`, чтобы дать пользователю выбор",
+      "explanation": "Совет: проверяйте App Links через App Links Assistant в Android Studio и не забудьте category BROWSABLE — иначе браузер не передаст ссылку.",
+      "tags": ["deeplink", "intents"],
+      "difficulty": 0.55
+    },
+    {
+      "id": "cori_006",
+      "type": "MCQ",
+      "level": 2,
+      "text": "ACTION_SEND подходит трём приложениям. Что произойдёт при отправке обычного неявного Intent без Intent.createChooser()?",
+      "options": [
+        "Система сама покажет стандартный диалог выбора приложения (resolver)",
+        "Intent молча не выполнится — createChooser обязателен",
+        "Запустится первое попавшееся приложение из списка",
+        "Приложение крашнется с ActivityNotFoundException"
+      ],
+      "correctAnswer": "0",
+      "explanation": "На современных Android без явного createChooser() система всё равно покажет системный resolver. createChooser оставляют для кастомного заголовка и принудительного диалога. ActivityNotFoundException бросается, когда обработчиков нет вообще (например, ACTION_VIEW без браузера) — это надо обрабатывать через try/catch или resolveActivity.",
+      "tags": ["intents", "chooser"],
+      "difficulty": 0.4
+    },
+    {
+      "id": "cori_007",
+      "type": "TRUE_FALSE",
+      "level": 1,
+      "text": "Явный Intent из вашего приложения может запустить компонент чужого приложения, если тот экспортирован.",
+      "options": ["Верно", "Неверно"],
+      "correctAnswer": "0",
+      "explanation": "Явный интент указывает точный пакет/класс (setPackage, setClassName, ComponentName) — если компонент чужого приложения экспортирован, система его откроет. Ограничение: с Android 11 действует Package Visibility — чтобы видеть компоненты других пакетов и resolveActivity по неявным интентам, нужно объявить `<queries>` в манифесте.",
+      "tags": ["intents", "explicit"],
+      "difficulty": 0.35
+    }
+  ]
+}

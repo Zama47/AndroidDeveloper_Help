@@ -1,0 +1,87 @@
+{
+  "version": 1,
+  "topic": "perf-memory",
+  "questions": [
+    {
+      "id": "prm_001",
+      "type": "MCQ",
+      "level": 2,
+      "text": "В долгоживущем singleton есть поля разных типов. Какое поле НЕ приведёт к утечке Activity?",
+      "options": [
+        "private lateinit var activity: MainActivity",
+        "private var headerView: TextView? ( findViewById после inflate)",
+        "private val appContext: Context (Application context)",
+        "private var adapter: XAdapter (holder держит Activity через конструктор)"
+      ],
+      "correctAnswer": "2",
+      "explanation": "Application context живёт весь процесс — удерживать его безопасно. Activity и любой View (View держит Context через цепочку parent) — до destroy: singleton переживёт экран и «удержит» его. Ловушка собеседования: параметр с типом Context сам по себе безопасен, важно, какой это Context (Application vs Activity).",
+      "tags": ["memory", "leak"],
+      "difficulty": 0.45
+    },
+    {
+      "id": "prm_002",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Как LeakCanary находит утечку?",
+      "options": [
+        "Разбирает logcat на слова «leak»",
+        "Отслеживает слабыми ссылками (weak references) ключевые объекты (Activity, Fragment, ViewModel, View, Service); после GC неочищенный ref → heap dump → анализ ссылочной цепочки → отчёт с трейсом до корня",
+        "Статически анализирует байткод при сборке",
+        "Пингует_DECLARED leak-объекты по сети в фоне"
+      ],
+      "correctAnswer": "1",
+      "explanation": "Ход: watch-объект оборачивается в KeyedWeakReference; при уничтожении Activity система дамит heap (HPROF), анализирует его библиотекой Shark на устройстве, строит shortest path до GC root и группирует одинаковые утечки. Работает только в debug-сборке (не добавлять в релиз — падения производительности ради безопасности не нужны).",
+      "tags": ["leakcanary", "tooling"],
+      "difficulty": 0.55
+    },
+    {
+      "id": "prm_003",
+      "type": "MCQ",
+      "level": 3,
+      "text": "Сколько памяти занимает Bitmap 1080×1920 в конфигурации ARGB_8888?",
+      "options": [
+        "около 2 МБ (как JPEG-файл на диске)",
+        "около 8 МБ (1080 × 1920 × 4 байта = ~8.3 МБ)",
+        "около 1 МБ (как ZIP)",
+        "не зависит от конфигурации, всегда 2 МБ"
+      ],
+      "correctAnswer": "1",
+      "explanation": "В памяти битмап занимает width×height×байтов-на-пиксель: ARGB_8888 — 4 байта, RGB_565 — 2. Дисковый размер (JPEG/WebP/сжатие) к памяти отношения не имеет — частая ловушка. Практика: грузить с downsample под размер View (inSampleSize), RGB_565 — где не нужна прозрачность, аппаратные битмапы (HARDWARE) для GPU.",
+      "tags": ["memory", "bitmap"],
+      "difficulty": 0.65
+    },
+    {
+      "id": "prm_004",
+      "type": "TRUE_FALSE",
+      "level": 3,
+      "text": "Вызов System.gc() перед загрузкой больших битмапов надёжно защищает приложение от OOM.",
+      "options": ["Верно", "Неверно"],
+      "correctAnswer": "1",
+      "explanation": "System.gc() — лишь подсказка: JVM не обязана запускать сборку, а OOM лечится не GC-вызовом, а уменьшением удерживаемой памяти: downsample bitmaps, LruCache с лимитом (обычно 1/8 heap по onTrimMemory→evict старый), recycle/переиспользование, уход от статических ссылок. Если после System.gc() OOM всё равно происходит — объект удержан живой ссылкой.",
+      "tags": ["memory", "gc", "bitmap"],
+      "difficulty": 0.6
+    },
+    {
+      "id": "prm_005",
+      "type": "INPUT",
+      "level": 2,
+      "text": "Формат пикселей Bitmap по умолчанию: 4 байта на пиксель с альфа-каналом. Аббревиатура из двух «частей» через подчёркивание, например XX_XXXX (введите английское обозначение).",
+      "options": null,
+      "correctAnswer": "argb_8888",
+      "explanation": "ARGB_8888 — 4 байта (по 8 бит на канал). Альтернативы: RGB_565 (2 байта, без альфы, для больших непрозрачных изображений), ALPHA_8 (1 байт), HARDWARE (в памяти только на GPU — экономит Java heap, но нельзя читать пиксели с CPU).",
+      "tags": ["memory", "bitmap"],
+      "difficulty": 0.4
+    },
+    {
+      "id": "prm_006",
+      "type": "CARD",
+      "level": 2,
+      "text": "Перечислите типовые источники утечек памяти в Android-приложении и инструменты для их поиска.",
+      "options": null,
+      "correctAnswer": "- Статическое поле singleton держит Activity/Fragment/View (вместо Application context)\n- Не-статический внутренний класс (Handler, Runnable, корутина-/job, Thread) удерживает внешний Activity: job не отменён в onDestroy\n- Незарегистрированные listener'ы, BroadcastReceiver, EventBus-подписки, observer'ы LiveData/Flow\n- Хранилище больших Bitmap вне области видимости экрана (LruCache без лимита, статика)\n- ViewModel получает Activity-контекст вместо AndroidViewModel+Application\n- Работа таймера/рулета после закрытия экрана; ImageView не очищен в fragment (с учётом ожидания декодирования)\n- Инструменты: LeakCanary (debug — автоматический heap dump и трейс до корня), Android Studio Profiler (heap dump, dominators/retained size), Perfetto (memory), Macrobenchmark для регрессий по памяти",
+      "explanation": "Это типовой ответ на «назовите утечки, которые вы встречали». Ценно упомянуть, что leak ≠ 100% OOM: — если утечку вы «подхватили» на одном переиспользуемом экране, Activity копятся — судя по тренду роста heap. Хорошая привычка: LeakCanary в CI на детект new leaks (закрытие после тестов).",
+      "tags": ["memory", "leak"],
+      "difficulty": 0.6
+    }
+  ]
+}

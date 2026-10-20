@@ -1,0 +1,96 @@
+{
+  "version": 1,
+  "topic": "hilt-basics",
+  "questions": [
+    {
+      "id": "hlb_001",
+      "type": "MCQ",
+      "level": 1,
+      "text": "Что делает аннотация @HiltAndroidApp над классом Application?",
+      "options": [
+        "Генерирует корень DI-контейнера Hilt (SingletonComponent) для всего приложения",
+        "Отключает runtime-проверки зависимостей, ускоряя запуск",
+        "Создаёт синглтон координатора внутри базы",
+        "Включает reflection для автоматического поиска всех @Inject"
+      ],
+      "correctAnswer": "0",
+      "explanation": "@HiltAndroidApp — точка входа Hilt: генерируется Hilt_<AppClass>, где создаётся дерево компонентов с корнем SingletonComponent. Без этой аннотации остальные Hilt-части не заработают. Hilt — compile-time технология (аннотационный процессор), reflection не используется.",
+      "tags": ["hilt", "di", "application"],
+      "difficulty": 0.25
+    },
+    {
+      "id": "hlb_002",
+      "type": "MCQ",
+      "level": 2,
+      "text": "К каким классам применяется @AndroidEntryPoint?",
+      "options": [
+        "К Android-компонентам: Activity, Fragment, View, Service, BroadcastReceiver",
+        "Только к Activity — остальные компоненты не поддерживаются",
+        "Только к классам с @HiltViewModel",
+        "К любым классам, даже к вспомогательным presenter'ам"
+      ],
+      "correctAnswer": "0",
+      "explanation": "@AndroidEntryPoint ставится на Activity, Fragment, View, Service, BroadcastReceiver — точки, где Hilt внедряет зависимости через сгенерированные базовые классы. Произвольные Kotlin-классы так не помечают: для них — constructor injection или EntryPointAccessors. Ловушка: Fragment требует, чтобы его Activity тоже была @AndroidEntryPoint.",
+      "tags": ["hilt", "di", "entry-point"],
+      "difficulty": 0.4
+    },
+    {
+      "id": "hlb_003",
+      "type": "TRUE_FALSE",
+      "level": 2,
+      "text": "Если конструктор класса помечен @Inject и все его зависимости предоставляемы, Hilt может создавать экземпляры без модуля.",
+      "options": ["Верно", "Неверно"],
+      "correctAnswer": "0",
+      "explanation": "Constructor injection — самый простой путь: Hilt видит аннотированный конструктор и умеет инстанцировать класс, рекурсивно резолвя параметры. Модуль нужен, когда класс сторонний (нельзя аннотировать), тип — интерфейс с реализациями или требуется скоуп-логика. Ловушка: считать, что для каждой зависимости обязателен @Module.",
+      "tags": ["hilt", "di", "constructor-injection"],
+      "difficulty": 0.35
+    },
+    {
+      "id": "hlb_004",
+      "type": "INPUT",
+      "level": 1,
+      "text": "Какая аннотация ставится над классом Activity, чтобы в ней работала field-инъекция (@Inject lateinit var)?",
+      "correctAnswer": "@AndroidEntryPoint",
+      "explanation": "@AndroidEntryPoint делает Activity точкой входа: поля внедряются в сгенерированном базовом классе после super.onCreate(). Не путать с @Inject (маркирует точку/конструктор) и @HiltAndroidApp (только Application). Ловушка: забыть @AndroidEntryPoint на Activity — во фрагменте будет runtime-ошибка.",
+      "tags": ["hilt", "di", "activity"],
+      "difficulty": 0.25
+    },
+    {
+      "id": "hlb_005",
+      "type": "CARD",
+      "level": 3,
+      "text": "Объясните разницу между конструкторной и field-инъекцией и когда какую применяете.",
+      "correctAnswer": "### Constructor injection\n- `class Repo @Inject constructor(private val api: Api)`\n- Hilt сам создаёт экземпляр, зависимости идут в конструктор, объект неизменяем\n- предпочтителен для вашего кода: тестируемость (легко подменить), циклические зависимости ловятся на компиляции\n- не требует ни @AndroidEntryPoint, ни модулей, если зависимости уже предоставляемы\n\n### Field injection\n- только в точках @AndroidEntryPoint: `@Inject lateinit var repo: Repo`\n- выполняется после creation лайф-цикла (super.onCreate/onAttach): до этого поля null/lateinit не инициализированы\n- единственный способ, когда класс создаётся системой (Activity, Fragment, Service) — своего конструктора вы не контролируете\n- для обычных классов — антипаттерн: нарушает неизменяемость, скрывает зависимости\n\nВывод: конструкторная — по умолчанию, field — только для системных компонентов.",
+      "explanation": "Совет: подчеркните, что field injection доступен только в @AndroidEntryPoint-классах, а во ViewModel — конструкторная через @HiltViewModel.",
+      "tags": ["hilt", "di", "injection"],
+      "difficulty": 0.5
+    },
+    {
+      "id": "hlb_006",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Fragment помечен @AndroidEntryPoint, но его Activity — нет. Что произойдёт?",
+      "options": [
+        "Runtime-ошибка при создании фрагмента: родительская Activity тоже должна быть @AndroidEntryPoint",
+        "Hilt подключится автоматически, ничего не будет",
+        "Fragment заработает, но ViewModel вернёт null",
+        "Ошибка на компиляции — Hilt запретит такую комбинацию"
+      ],
+      "correctAnswer": "0",
+      "explanation": "Fragment жив внутри контекста Activity: без @AndroidEntryPoint у Activity не будет сгенерированного контейнера, и при attach фрагмента Hilt бросит IllegalStateException/UnsupportedOperationException. Это ловится только в runtime, поэтому частая ошибка при подключении Hilt в существующее приложение.",
+      "tags": ["hilt", "di", "fragment"],
+      "difficulty": 0.45
+    },
+    {
+      "id": "hlb_007",
+      "type": "TRUE_FALSE",
+      "level": 2,
+      "text": "Hilt использует reflection во время работы приложения, чтобы находить зависимости по аннотациям.",
+      "options": ["Верно", "Неверно"],
+      "correctAnswer": "1",
+      "explanation": "Hilt — compile-time: аннотационный процессор генерирует код (фабрики, компоненты), а в runtime никакого reflection-поиска нет. Ошибка «cannot be provided» — ошибка компиляции, не рантайма. Ловушка: перепутать с Koin — там зависимости резолвятся в runtime по реестру (DSL, не reflection), поэтому ошибки Koin проявляются на рантайме.",
+      "tags": ["hilt", "di", "compile-time"],
+      "difficulty": 0.4
+    }
+  ]
+}

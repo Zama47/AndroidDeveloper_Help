@@ -1,0 +1,87 @@
+{
+  "version": 1,
+  "topic": "perf-ui",
+  "questions": [
+    {
+      "id": "prf_001",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Кто в Android-рендеринге получает сигнал VSYNC и запускает отрисовку очередного кадра в UI-потоке?",
+      "options": [
+        "SurfaceFlinger сам вызывает Activity.onDraw напрямую",
+        "Choreographer: подписан на VSYNC и запускает цепочку callback'ов (input, animation, measure/layout, draw)",
+        "Handler.postDelayed с интервалом 16 мс",
+        "RecyclerView внутри себя"
+      ],
+      "correctAnswer": "1",
+      "explanation": "Choreographer (android.view.Choreographer) работает с DisplayEventReceiver: раз в vsync-такт запускает callback'и разных типов. Если работа кадра не уложилась до следующего vsync — кадр пропущен (jank). SurfaceFlinger — композитор ниже по стеку, он не вызывает UI-код. Собеседование любит проверку «Choreographer vs SurfaceFlinger vs Looper».",
+      "tags": ["rendering", "choreographer"],
+      "difficulty": 0.55
+    },
+    {
+      "id": "prf_002",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Вы включили Debug GPU Overdraw и видите, что основной экран сплошного синего цвета. Что это значит и что делать?",
+      "options": [
+        "Это деградация: синий означает 10+ слоёв, срочно рефакторить вёрстку",
+        "Это допустимая норма: синий = одна лишняя закраска; целиться стоит в зелёные (2) и розовые/красные (3–4+) зоны, убирая лишние фоны и прозрачные наложения",
+        "Синий = ноль закрасок, ошибка измерения",
+        "Ничего не значит, это индикатор FPS"
+      ],
+      "correctAnswer": "1",
+      "explanation": "Шкала Debug GPU Overdraw: без цвета — пиксель закрашен 1 раз, синий — 1 лишняя закраска, зелёный — 2, розовый — 3, красный — 4+. Сплошной синий по всему экрану — приемлемо; хуже плотные зелёные/розовые зоны. Типичные источники: theme windowBackground + фон activity + фон card друг над другом без видимой нужды.",
+      "tags": ["rendering", "overdraw"],
+      "difficulty": 0.5
+    },
+    {
+      "id": "prf_003",
+      "type": "MCQ",
+      "level": 3,
+      "text": "Экран со сложной вёрсткой дёргается первые кадры. В Perfetto видно тяжёлые measure и layout проходы нескольких вложенных LinearLayout. Первая линия атаки?",
+      "options": [
+        "Включить hardware layer на корневой view",
+        "Упростить иерархию: плоская вёрстка (ConstraintLayout, merge/ViewStub), вычисления — за пределы layout-прохода (кэшировать размеры/textLayout в background)",
+        "Переход на Fragment вместо Activity",
+        "Увеличить бюджет кадра через setWindowLayoutFormat"
+      ],
+      "correctAnswer": "1",
+      "explanation": "Тяжёлый measure/layout главном потоке съедает бюджет 16.6 мс: LinearLayout с layout_weight вызывает двойной проход, вложенные root'ы — дубли. ConstraintLayout/FlatHierarchy + merge на «невидимые» корни + откладывание view (ViewStub) решают. hardware layer кэширует уже нарисованный слой, а не удешевляет measure/layout; «сделать Fragment» — миф.",
+      "tags": ["rendering", "layout", "perfetto"],
+      "difficulty": 0.65
+    },
+    {
+      "id": "prf_004",
+      "type": "TRUE_FALSE",
+      "level": 2,
+      "text": "На устройстве с экраном 120 Гц бюджет кадра чуть меньше 8.3 мс — требования к оптимизации rendering-конвейера выше, чем при 60 Гц.",
+      "options": ["Верно", "Неверно"],
+      "correctAnswer": "0",
+      "explanation": "Бюджет = 1000 мс / частота обновления. При 120 Гц — ~8.3 мс на кадр (при 90 Гц — ~11.1). Compose и Android 11+ умеют деградировать (frame pacing), но для гладкой анимации на high-refresh-дисплеях доля janky frames контролируется сильнее — тестировать стоит на реальных 90/120 Гц устройствах.",
+      "tags": ["rendering", "frame-budget"],
+      "difficulty": 0.5
+    },
+    {
+      "id": "prf_005",
+      "type": "INPUT",
+      "level": 2,
+      "text": "Какой компонент фреймворка пишет в Logcat сообщение вида «Skipped 40 frames! The application may be doing too much work on its main thread»? Одно слово (термин из одного слова).",
+      "options": null,
+      "correctAnswer": "choreographer",
+      "explanation": "Choreographer добивает tracing-лог с именным тегом Choreographer. Это готовый сигнал jank без профайлера. Чуть глубже: FrameMetrics (API 24+) позволяют собирать длительность каждого кадра самому, а Perfetto/Vitals — треки FrameLifecycle.",
+      "tags": ["rendering", "jank"],
+      "difficulty": 0.45
+    },
+    {
+      "id": "prf_006",
+      "type": "CARD",
+      "level": 3,
+      "text": "Как измерять jank (пропуски кадров) в двух сценариях: на реальных пользователях и в локальной разработке? Назовите инструменты и метрики.",
+      "options": null,
+      "correctAnswer": "- Production: Android Vitals — janky frames rate и перцентили (50th/90th/95th/99th), разбивка по устройству/OEM/версии Android\n- Локально: Perfetto/systrace (треки FrameLifecycle, на API 31+ — FrameTimeline со статусом janked), Android Studio Profiler (CPU-трейс: что занимало main в кадре)\n- В приложении: FrameMetrics / FrameMetricsAggregator — totalDuration против deadline; Layout Inspector — recomposition counts (Compose)\n- CI: Macrobenchmark + FrameTimingMetric\n- Методика: цифры Vitals → reproducer на устройстве → CPU-трейс виновника → fix → повторный замер",
+      "explanation": "Канонический набор. Важно уметь сказать про pipeline: доля janky frames = кадры, превышающие deadline, делённые на все кадры; соотносить с устройства/версией — обычно jank скучен 1-2 местах, а не «везде».",
+      "tags": ["rendering", "jank", "tooling"],
+      "difficulty": 0.7
+    }
+  ]
+}

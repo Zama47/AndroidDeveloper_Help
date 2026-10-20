@@ -1,0 +1,87 @@
+{
+  "version": 1,
+  "topic": "view_system",
+  "questions": [
+    {
+      "id": "vs_001",
+      "type": "MCQ",
+      "level": 1,
+      "text": "Что делает LayoutInflater в классическом View-стеке?",
+      "options": [
+        "Компилирует XML-ресурсы в классы на этапе сборки",
+        "Создаёт дерево View-объектов из XML-файла в рантайме (setContentView, inflate фрагментов)",
+        "Сжимает PNG-ресурсы",
+        "Производит DPI-конвертацию размеров"
+      ],
+      "correctAnswer": "1",
+      "explanation": "LayoutInflater парсит XML и создаёт объекты View (та же работа в inflate() ViewHolder'ов RecyclerView). Компиляция ресурсов — зона AAPT и процессоров (ViewBinding), генерация кода — на этапе сборки. DPI-конвертация — в TypedValue.applyDimension.",
+      "tags": ["view", "layout"],
+      "difficulty": 0.2
+    },
+    {
+      "id": "vs_002",
+      "type": "MCQ",
+      "level": 1,
+      "text": "При переиспользовании ViewHolder у RecyclerView какое событие происходит чаще всего на каждом кадре?",
+      "options": [
+        "onCreateViewHolder",
+        "onBindViewHolder",
+        "onCreateViewHolder и onBindViewHolder одинаково часто",
+        "Ничего не вызывается"
+      ],
+      "correctAnswer": "1",
+      "explanation": "onCreateViewHolder выполняется редко — только при нехватке переиспользуемых ViewHolder; bind — на каждом новом появлении item'а на экране. Поэтому инструкции: bind без аллокаций и дорогих операций, сложное создание и расчёты перенести из bind.",
+      "tags": ["recyclerview"],
+      "difficulty": 0.25
+    },
+    {
+      "id": "vs_003",
+      "type": "TRUE_FALSE",
+      "level": 2,
+      "text": "Tween-анимации (AlphaAnimation, TranslateAnimation) меняют только отрисовку View: свойства позиции/масштаба не меняются, поэтому касания обрабатываются по прежнему прямоугольнику.",
+      "options": ["Верно", "Неверно"],
+      "correctAnswer": "0",
+      "explanation": "View-анимации устаревшего типа крутят только Canvas-вывод; property-анимации (ObjectAnimator) честно меняют свойства. Классический баг: передвинули кнопку tween-ом, но touch остался в старом месте. Отсюда рекомендация для нового кода — только property-анимации.",
+      "tags": ["animation"],
+      "difficulty": 0.45
+    },
+    {
+      "id": "vs_004",
+      "type": "INPUT",
+      "level": 2,
+      "text": "Какой метод в View-иерархии вызывается между measure и draw, чтобы назначить каждому ребёнку его позиции (left/top/right/bottom)? Введите имя метода с префиксом on.",
+      "options": null,
+      "correctAnswer": "onLayout",
+      "explanation": "Порядок: onMeasure (размеры по MeasureSpec) → onLayout (позиции) → onDraw (содержимое). Разница invalidate/requestLayout: первый перерисовывает, второй запускает measure+layout заново.",
+      "tags": ["view"],
+      "difficulty": 0.35
+    },
+    {
+      "id": "vs_005",
+      "type": "MCQ",
+      "level": 2,
+      "text": "RecyclerView в вашей View-системе — главный компонент длинных списков. Что даёт DiffUtil по сравнению с notifyDataSetChanged()?",
+      "options": [
+        "Загружает данные из сети",
+        "Считает минимальный набор изменений между списками и обновляет только изменённые item'ы, с анимациями",
+        "Автоматически включает пейджинг",
+        "Помещает ViewHolder в архив минуя пул"
+      ],
+      "correctAnswer": "1",
+      "explanation": "DiffUtil сравнивает старый и новый списки (areItemsTheSame/areContentsTheSame) и посылает конкретные notify-операции с точечными анимациями; ListAdapter оборачивает это в AsyncListDiffer с фоновым подсчётом. Paging автоматически не включается никуда — это отдельный компонент.",
+      "tags": ["recyclerview", "diffutil"],
+      "difficulty": 0.4
+    },
+    {
+      "id": "vs_006",
+      "type": "CARD",
+      "level": 3,
+      "text": "Собеседование-задача: экран на классических XML/View. Опишите по слоям, что происходит от инфлейта layout до первого кадра, и где могут возникнуть просадки производительности.",
+      "options": null,
+      "correctAnswer": "- Инфлейт: setContentView → LayoutInflater рекурсивно создаёт дерево View по XML\n- Measure: рекурсивный onMeasure; родитель передаёт MeasureSpec (EXACTLY/AT_MOST/UNSPECIFIED); у LinearLayout с весами возможны двойные проходы\n- Layout: onLayout назначает позиции children, рекурсивно\n- Draw: onDraw рисует содержимое на Canvas, дети рисуются по порядку; всё укладывается в ~16 мс кадра\n- Места просадок: глубокая вложенность (лишние measure-проходы → заменять ConstraintLayout), тяжёлый onDraw (объекты Paint/Path создавать заранее, не в draw), дорогой onBindViewHolder, огромные bitmap без downsampling\n- Резюме: держать иерархию плоской, рисовать дёшево и в правильных местах",
+      "explanation": "Ожидается рассказ по слоям — от XML до кадра — с узкими местами measure/draw. Бонусом скажите про Layout Inspector и System Trace/отчёт Choreographer для поиска причин jank.",
+      "tags": ["view", "performance"],
+      "difficulty": 0.6
+    }
+  ]
+}

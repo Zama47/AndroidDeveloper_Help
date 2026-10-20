@@ -1,0 +1,101 @@
+{
+  "version": 1,
+  "topic": "kotlin-oop",
+  "questions": [
+    {
+      "id": "kto_001",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Дан класс:\n\ndata class User(val name: String) {\n    var age: Int = 0\n}\n\nУчаствует ли age в equals()?",
+      "options": [
+        "Нет: equals/hashCode/toString/copy генерируются только из свойств primary конструктора",
+        "Да: из всех свойств класса",
+        "Да, но только если сделать age val",
+        "Код не скомпилируется"
+      ],
+      "correctAnswer": "0",
+      "explanation": "Генератор учитывает только свойства primary конструктора; age объявлен в теле и игнорируется. Отсюда рассинхрон: два User с одинаковым name, но разным age будут «равны», а изменение age не влияет на hashCode. Ловушка «сделать val» — свойства в теле не попадают в сгенерированные методы в любом случае; для включения их надо объявить в конструкторе.",
+      "tags": ["kotlin", "data-class", "oop"],
+      "difficulty": 0.5
+    },
+    {
+      "id": "kto_002",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Что главное даёт sealed-иерархия (sealed class / sealed interface) для моделирования состояний экрана?",
+      "options": [
+        "Компилятор знает все прямые наследники, поэтому when может быть exhaustive: без ветки else и с ошибкой компиляции при добавлении нового состояния",
+        "Наследников можно объявлять в любом модуле проекта",
+        "sealed-класс нельзя расширить наследованием вообще",
+        "Это синоним abstract class с синтаксическим сахаром"
+      ],
+      "correctAnswer": "0",
+      "explanation": "Ограниченная иерархия = исчерпывающий when: забытые ветки — ошибка компиляции, а не баг в рантайме. Ограничение: наследники должны жить в том же модуле (для sealed class — ещё и в том же пакете). Ловушка: ветка else в when «съедает» exhaustive-проверку — новый наследник пройдёт незамеченным, поэтому else в sealed-when не пишут.",
+      "tags": ["kotlin", "sealed-class", "when"],
+      "difficulty": 0.4
+    },
+    {
+      "id": "kto_003",
+      "type": "MCQ",
+      "level": 3,
+      "text": "Почему List<out T> ковариантен, то есть List<String> допустимо присвоить List<Any>?",
+      "options": [
+        "T встречается только в выходных позициях (producer): List умеет отдавать элементы, но их не принимать, поэтому подтип безопасен",
+        "T используется только во входных позициях, поэтому это contravariance",
+        "В Kotlin дженерики ковариантны всегда, если это явно не запретить инвариантностью",
+        "Так нельзя: List<String> не является List<Any>"
+      ],
+      "correctAnswer": "0",
+      "explanation": "out — производитель: тип встречается только в выходных позициях (return), in — потребитель (параметры); это замена Java wildcard'ам ? extends / ? super. Ловушка: MutableList<T> инвариантен, потому что и add(T) (вход), и get() (выход) — иначе в List<Any>-ссылку, указывающую на список строк, можно было бы положить Int. Проверяйте, где тип появляется в сигнатурах, — это и определяет variance.",
+      "tags": ["kotlin", "generics", "variance"],
+      "difficulty": 0.65
+    },
+    {
+      "id": "kto_004",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Что делает объявление class UserService(logger: Logger) : Logger by logger?",
+      "options": [
+        "Автоматически переадресует реализацию Logger объекту logger — не надо вручную писать методы-делегаты",
+        "Наследует UserService от Logger без создания объекта",
+        "Помечает logger как синглтон в companion object",
+        "Инжектирует logger через конструктор только для методов, помеченных inline"
+      ],
+      "correctAnswer": "0",
+      "explanation": "Это делегирование реализации интерфейса: все методы Logger переадресуются logger, отдельные методы можно переопределить. Удобно для декораторов и композиция вместо наследования. Ловушка: не путать с property-делегатами by lazy, by viewModels() и by mutableStateOf() — это другой механизм.",
+      "tags": ["kotlin", "delegation", "oop"],
+      "difficulty": 0.5
+    },
+    {
+      "id": "kto_005",
+      "type": "TRUE_FALSE",
+      "level": 2,
+      "text": "when по sealed-иерархии, покрывающий все наследники, компилируется без ветвления else (exhaustive).",
+      "options": ["Верно", "Неверно"],
+      "correctAnswer": "0",
+      "explanation": "Компилятор для sealed-типов проверяет exhaustiveness: если покрыты все прямые наследники, else не нужен. Ловушка: добавив else, вы лишитесь этой проверки — новое состояние однажды тихо попадёт в else. Это же свойство заставляет при рефакторинге обновлять все места использования: компилятор укажет каждую ветку.",
+      "tags": ["kotlin", "sealed-class", "when"],
+      "difficulty": 0.3
+    },
+    {
+      "id": "kto_006",
+      "type": "INPUT",
+      "level": 1,
+      "text": "Назовите ключевое слово Kotlin (одно, без пробелов), которым делегируется реализация интерфейса объекту: class A : B by b.",
+      "options": null,
+      "correctAnswer": "by",
+      "explanation": "Ключевое слово by используется и в class-level delegation (: B by b), и в property-делегатах (val x by lazy { }). В первом случае by переадресует методы интерфейса, во втором — отдаёт геттер/сеттер внешнему объекту (Delegate). На собеседовании уточните, какой именно механизм спрашивают.",
+      "tags": ["kotlin", "delegation"],
+      "difficulty": 0.25
+    },
+    {
+      "id": "kto_007",
+      "type": "CARD",
+      "level": 3,
+      "text": "Спроектируйте модель состояния экрана профиля: loading, data, error. Какие инструменты Kotlin и почему?",
+      "options": null,
+      "correctAnswer": "- sealed interface ProfileState — фиксированная иерархия, компилятор знает наследников\n- data object Loading — зачем синглтон-объект: нет полей, equals тривиален (Kotlin 1.9+)\n- data class Success(val profile: Profile) — equals/copy/componentN бесплатно, неизменяемые val\n- data class Error(val message: String, val throwable: Throwable?) — данные для обработки ошибки\n- when (state) { ... } без else — exhaustive; при добавлении состояния компилятор напомнит обновить все ветки\n- Ловушка: не моделируйте состояние boolean-флагами (isLoading/isError) — они дают недостижимые комбинации, sealed это исключает",
+      "explanation": "Подсказка: обоснуйте выбор data object против data class без полей и почему val, а не var."
+    }
+  ]
+}

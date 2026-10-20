@@ -14,12 +14,16 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Code
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Layers
 import androidx.compose.material.icons.filled.PhoneAndroid
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.SubdirectoryArrowRight
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -29,6 +33,10 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.StrokeCap
@@ -55,6 +63,11 @@ fun HomeScreen(
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier.fillMaxSize()) {
+        val parents = topics.filter { it.parentId == null }.sortedBy { it.orderIndex }
+        val childrenByParent = topics.filter { it.parentId != null }.groupBy { it.parentId!! }
+        val groupedTopics: List<Pair<Topic, List<Topic>>> = parents.map { parent ->
+            parent to childrenByParent[parent.id].orEmpty().sortedBy { it.orderIndex }
+        }
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -120,14 +133,136 @@ fun HomeScreen(
                         modifier = Modifier.padding(top = 8.dp)
                     )
                 }
-                items(topics, key = { it.id }) { topic ->
-                    TopicCard(
-                        topic = topic,
-                        stats = topicStats[topic.id],
-                        onClick = { onTopicClick(topic) }
+                items(groupedTopics, key = { it.first.id }) { (parent, children) ->
+                    TopicGroup(
+                        parent = parent,
+                        children = children,
+                        stats = topicStats,
+                        onParentClick = { onTopicClick(parent) },
+                        onChildClick = onTopicClick
                     )
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun TopicGroup(
+    parent: Topic,
+    children: List<Topic>,
+    stats: Map<String, com.zama.androiddeveloper_help.quiz.TopicStats>,
+    onParentClick: () -> Unit,
+    onChildClick: (Topic) -> Unit
+) {
+    var expanded by rememberSaveable { mutableStateOf(true) }
+    Column {
+        Card(
+            onClick = onParentClick,
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)
+        ) {
+            Row(
+                modifier = Modifier.padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = topicIcon(parent.icon),
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(32.dp)
+                )
+                Spacer(modifier = Modifier.width(16.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = parent.title,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        LevelStars(level = parent.level)
+                    }
+                    Text(
+                        text = if (children.isEmpty()) parent.description
+                        else "${children.size} ${pluralSubsections(children.size)}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                if (children.isNotEmpty()) {
+                    IconButton(onClick = { expanded = !expanded }) {
+                        Icon(
+                            imageVector = if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+        }
+        if (expanded) {
+            children.forEach { child ->
+                ChildTopicRow(
+                    child = child,
+                    stats = stats[child.id],
+                    onClick = { onChildClick(child) }
+                )
+            }
+        }
+    }
+}
+
+private fun pluralSubsections(count: Int): String = when {
+    count % 10 == 1 && count % 100 != 11 -> "подраздел"
+    count % 10 in 2..4 && (count % 100 < 10 || count % 100 > 20) -> "подраздела"
+    else -> "подразделов"
+}
+
+@Composable
+private fun ChildTopicRow(
+    child: Topic,
+    stats: com.zama.androiddeveloper_help.quiz.TopicStats?,
+    onClick: () -> Unit
+) {
+    Card(
+        onClick = onClick,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = 20.dp, top = 8.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainer
+        )
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.Filled.SubdirectoryArrowRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(18.dp)
+            )
+            Spacer(modifier = Modifier.width(10.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = child.title,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Medium
+                )
+                Text(
+                    text = stats?.let { "Решено ${it.solved} из ${it.total}" } ?: child.description,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1
+                )
+            }
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }

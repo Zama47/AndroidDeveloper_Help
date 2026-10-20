@@ -1,0 +1,119 @@
+{
+  "version": 1,
+  "topic": "sd-caching",
+  "questions": [
+    {
+      "id": "sdc_001",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Приложение сначала смотрит в Redis; при промахе читает данные из БД и записывает их в Redis самим кодом сервиса. Как называется этот паттерн?",
+      "options": [
+        "Write-through",
+        "Cache-aside (lazy loading)",
+        "Write-behind (write-back)",
+        "Read-through"
+      ],
+      "correctAnswer": "1",
+      "explanation": "Cache-aside: кэш никто не синхронизирует автоматически — сервис сам проверяет промах, читает БД и заполняет кэш; при записи инвалидирует ключ. Write-through — запись идёт в кэш и БД синхронно; write-behind — в кэш сразу, в БД асинхронно (риск потери хвоста); read-through — библиотека кэша сама тянет из БД. Cache-aside — самый частый в бэкендах.",
+      "tags": ["cache", "patterns"],
+      "difficulty": 0.55
+    },
+    {
+      "id": "sdc_002",
+      "type": "MCQ",
+      "level": 3,
+      "text": "Мобильный клиент кэширует HTTP-ответы API. Как переиспользовать кэш, не перекачивая тело ответа, но оставаясь уверенным в актуальности?",
+      "options": [
+        "Всегда перезапрашивать целиком при каждом открытии",
+        "ETag / If-None-Match (или Last-Modified / If-Modified-Since): сервер отвечает 304 Not Modified без тела, клиент берёт тело из своего кэша",
+        "Хранить контрольную сумму в SharedPreferences и сверять по таймеру",
+        "Download всегда через POST, чтобы не кэшировалось"
+      ],
+      "correctAnswer": "1",
+      "explanation": "ETag — версия содержимого: клиент шлёт If-None-Match, сервер сравнивает и отдаёт 304 (нет тела) — экономия трафика при сохранении корректности. Работает и для API-ответов, и для статики через CDN. OkHttp умеет прозрачный HTTP-кэш, Room чаще хранит доменные данные, а не HTTP-ответы.",
+      "tags": ["cache", "http", "mobile"],
+      "difficulty": 0.7
+    },
+    {
+      "id": "sdc_003",
+      "type": "MCQ",
+      "level": 3,
+      "text": "Горячий ключ протух, и тысячи одновременных промахов ушли в БД (cache stampede). Какой набор мер уместен?",
+      "options": [
+        "Ничего — БД справится, это её работа",
+        "Single-flight (один воркер читает БД, остальные ждут его результат), TTL с джиттером, раннее обновление до протухания, локальный fallback-кэш",
+        "Увеличить heap БД",
+        "Отключить TTL совсем"
+      ],
+      "correctAnswer": "1",
+      "explanation": "Stampede лечат «дедупом» промахов: single-flight/mutex по ключу — кто первый взял лок, тот ходит в БД; TTL+random jitter разбивает одновременное протухание; soft-reload — обновлять в фоне до истечения. Обратная сторона: лок нужно держать с TTL, иначе залипшие мьютексы добавят хрупкости. «Отключить TTL» — путь к вечному хранению устаревших данных.",
+      "tags": ["cache", "stampede"],
+      "difficulty": 0.75
+    },
+    {
+      "id": "sdc_004",
+      "type": "TRUE_FALSE",
+      "level": 2,
+      "text": "Чем длиннее TTL, тем лучше кэш, — разумно ставить месяц на все ключи.",
+      "options": ["Верно", "Неверно"],
+      "correctAnswer": "1",
+      "explanation": "Длинный TTL = сильное устаревание (stale data) и переполнение кэша «холодными» данными; короткий = низкая hit ratio и частые протухания. TTL подбирается по цене ошибки: лента/каталог — минуты–часы, настройки пользователя — секунды–минуты, immutable-файлы — годы. Плюс event-based invalidation по записи для критичных данных.",
+      "tags": ["cache", "ttl"],
+      "difficulty": 0.45
+    },
+    {
+      "id": "sdc_005",
+      "type": "INPUT",
+      "level": 2,
+      "text": "Английский термин (два слова через пробел): волна одновременных промахов кэша — после протухания/сброса все запросы разом ударяют в БД.",
+      "options": null,
+      "correctAnswer": "cache stampede",
+      "explanation": "Синонимы: thundering herd («стадный наплыв»), cache miss storm. Лечение — single-flight, TTL+jitter, pre-warming, hard/soft TTL.",
+      "tags": ["cache", "stampede"],
+      "difficulty": 0.55
+    },
+    {
+      "id": "sdc_006",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Нужен кэш сессий: hash/map-структуры, TTL на ключ, атомарные счётчики (INCR), pub/sub. Какое хранилище соответствует?",
+      "options": [
+        "Memcached — идеален для структур",
+        "Redis — структуры (hash, list, sorted set), TTL per key, атомарные операции, pub/sub",
+        "Обычная HashMap в памяти сервиса",
+        "SQLite на сервере"
+      ],
+      "correctAnswer": "1",
+      "explanation": "Redis: rich structures, atomic INCR/EXPIRE, pub/sub, persistence — стандарт для сессионного кэша и rate limiting. Memcached — простой KV (только строки), TTL по set/get. In-memory HashMap — теряется при рестарте и не шарится между инстансами. Ловушка: оба — in-memory cache, но возможности разные.",
+      "tags": ["cache", "redis"],
+      "difficulty": 0.5
+    },
+    {
+      "id": "sdc_007",
+      "type": "MCQ",
+      "level": 3,
+      "text": "Как связать CDN и релизы статики (картинки, бандлы), чтобы кэш не отдал старьё после выката?",
+      "options": [
+        "Purge всего CDN при каждом коммите",
+        "Immutable-файлы с hash в имени (актив новая версия = новый URL) + Cache-Control immutable на годы; для не-hash файлов — короткий TTL и URL-версирование (?v=...)",
+        "Статику не кэшировать",
+        "Отдавать статику через POST"
+      ],
+      "correctAnswer": "1",
+      "explanation": "Идиома: статику делаем неизменяемой (content-hash в имени файла), тогда длинный TTL безопасен — содержимое никогда не меняется по одному URL. Обновление = новый файл + новый URL; старый вытесняется по TTL. Purge-инвалидация у CDN — дорого/сложно, применяется точечно. Обратное — «версия в query» — менее надёжно: некоторые прокси игнорируют query в ключе кэша.",
+      "tags": ["cache", "cdn"],
+      "difficulty": 0.7
+    },
+    {
+      "id": "sdc_008",
+      "type": "CARD",
+      "level": 3,
+      "text": "Спроектируйте многослойное кэширование для приложения с медиа (картинки/видео) и API: назовите слои и стратегии каждого.",
+      "options": null,
+      "correctAnswer": "- CDN/edge: immutable-медиа (hash в URL), Cache-Control: immutable; API-фрагменты — только по заголовкам и с осторожностью\n- Серверный Redis (L2): горячие объекты (профили, каталог) — cache-aside с TTL+jitter, invalidation по событию записи; следить за hit ratio и stampede (single-flight)\n- In-process кэш (L1): небольшой LRU для самых горячих предметов, чтобы не бить в Redis за каждым вызовом\n- Клиентское: OkHttp-кэш (ETag/304) для API и Coil-кэш памяти+диск для изображений; главные данные — в Room (offline-first)\n- Write path: запись в БД → инвалидация/обновление кэшей (Redis, CDN purge при необходимости)\n- Наблюдаемость: hit/miss ratios, latency origin vs cache, размер кэшей, алерты на low hit ratio и рост evictions",
+      "explanation": "Слоями снизу вверх: клиент → CDN → Redis → БД. Важно проговорить и write path (когда кэши invalidate), и метрики качества (hit ratio) — без этого дизайн выглядит односторонним",
+      "tags": ["cache", "cdn", "architecture"],
+      "difficulty": 0.8
+    }
+  ]
+}

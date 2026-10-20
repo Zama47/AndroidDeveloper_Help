@@ -1,0 +1,87 @@
+{
+  "version": 1,
+  "topic": "net-retrofit",
+  "questions": [
+    {
+      "id": "netr_001",
+      "type": "MCQ",
+      "level": 1,
+      "text": "Как в интерфейсе Retrofit корректно описать GET-запрос за пользователем по его id из пути URL (/users/42)?",
+      "options": [
+        "@GET(\"users/{id}\") suspend fun getUser(@Path(\"id\") id: Int): UserDto",
+        "@GET(\"users/{id}\") suspend fun getUser(@Query(\"id\") id: Int): UserDto",
+        "@GET(\"users\") suspend fun getUser(@Path id: Int): UserDto",
+        "@GET suspend fun getUser(id: Int): UserDto"
+      ],
+      "correctAnswer": "0",
+      "explanation": "Плейсхолдер {id} в пути подставляется аннотацией @Path(\"id\"). @Query добавит параметр после знака ? (users?id=42) — это другой семантический случай. Вариант без имени у @Path или без шаблона в @GET — ошибка компиляции Retrofit.",
+      "tags": ["retrofit", "annotations"],
+      "difficulty": 0.35
+    },
+    {
+      "id": "netr_002",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Чем @Path отличается от @Query в Retrofit?",
+      "options": [
+        "@Path — это путь внутри URL, @Query — параметр после «?» (users/{id} vs users?sort=name)",
+        "@Path — для файлов, @Query — для JSON",
+        "Это синонимы, Retrofit сам выбирает",
+        "@Path работает только с POST"
+      ],
+      "correctAnswer": "0",
+      "explanation": "@Path подставляет значение в плейсхолдер URL-пути, @Query — ключ=значение в query-строку. Для списков есть @QueryMap, для тела — @Body, для заголовков — @Header/@HeaderMap. Ловушка: путаница Path/Query даёт 404 в рантайме при внешне похожем URL.",
+      "tags": ["retrofit", "annotations"],
+      "difficulty": 0.4
+    },
+    {
+      "id": "netr_003",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Для чего в Retrofit нужен ConverterFactory (например, MoshiConverterFactory или kotlinx-serialization)?",
+      "options": [
+        "Чтобы ретраить неудачные запросы",
+        "Чтобы превращать тело запроса/ответа между объектами Kotlin и JSON (сериализация/десериализация)",
+        "Чтобы подменять базовый URL в рантайме",
+        "Чтобы логировать запросы в Logcat"
+      ],
+      "correctAnswer": "1",
+      "explanation": "Конвертер отвечает за (де)сериализацию @Body и тела ответа: DTO в JSON и обратно. Ретраи и таймауты — зона OkHttp (OkHttpClient и interceptor-ы), логирование — HttpLoggingInterceptor, подмена URL — @Url или свой Interceptor. Retrofit без конвертера не соберёт объекты из ответа.",
+      "tags": ["retrofit", "converters"],
+      "difficulty": 0.4
+    },
+    {
+      "id": "netr_004",
+      "type": "TRUE_FALSE",
+      "level": 1,
+      "text": "Метод интерфейса Retrofit можно объявить как suspend fun — и вызывать его прямо из корутин (например, внутри viewModelScope.launch).",
+      "options": ["Верно", "Неверно"],
+      "correctAnswer": "0",
+      "explanation": "Retrofit 2.6+ поддерживает suspend-методы: под капотом запрос выполняется на потоках OkHttp, корутина не блокирует Dispatchers.Main, а приостанавливается до получения ответа. Для наблюдения потоком есть Flow-поддержка через ResponseBody/Streaming или обёртку в callbackFlow.",
+      "tags": ["retrofit", "coroutines"],
+      "difficulty": 0.25
+    },
+    {
+      "id": "netr_005",
+      "type": "INPUT",
+      "level": 2,
+      "text": "Как называется интерфейс OkHttp с единственным методом intercept(chain: Interceptor.Chain), через который добавляют заголовки, логирование или подмену URL?",
+      "options": null,
+      "correctAnswer": "Interceptor",
+      "explanation": "okhttp3.Interceptor — вставка в цепочку обработки запроса/ответа: добавление Authorization, HttpLoggingInterceptor, gzip-декомпрессия, ротация ключей. Типы: application interceptors (addInterceptor) — до редиректов и кэша, network interceptors (addNetworkInterceptor) — ближе к «что реально поехало по сети».",
+      "tags": ["okhttp", "interceptors"],
+      "difficulty": 0.4
+    },
+    {
+      "id": "netr_006",
+      "type": "CARD",
+      "level": 2,
+      "text": "Распишите типичную настройку Retrofit + OkHttp в production-приложении (что входит в OkHttpClient, что в Retrofit.Builder, где живут interceptors).",
+      "options": null,
+      "correctAnswer": "- OkHttpClient один на приложение (через DI-Hilt), переиспользует пул соединений\n  - callTimeout / connectTimeout / readTimeout с явными значениями\n  - HttpLoggingInterceptor в debug-сборке, уровень BODY для отладки, NONE в релизе\n  - Interceptor для заголовка Authorization (Bearer-токен) и refresh-флоу, либо Authenticator на 401\n- Retrofit.Builder:\n  - baseUrl(\"https://api.example.com/\") — обязателен финальный слеш\n  - addConverterFactory(Moshi / kotlinx.serialization / Gson)\n  - client(okHttpClient) — без этого создастся дефолтный клиент без ваших настроек\n- Сервис = интерфейс с аннотациями @GET/@POST + @Path/@Query/@Body",
+      "explanation": "Чаще всего забывают привязать свой OkHttpClient в Retrofit.Builder и таймауты молча остаются дефолтными. Логирование в релизе отключают (токены в логах). Один OkHttp-клиент на приложение — это ещё и экономия открытых соединений.",
+      "tags": ["retrofit", "okhttp", "di"],
+      "difficulty": 0.55
+    }
+  ]
+}

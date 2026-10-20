@@ -1,0 +1,84 @@
+{
+  "version": 1,
+  "topic": "kotlin-basics",
+  "questions": [
+    {
+      "id": "ktb_001",
+      "type": "MCQ",
+      "level": 1,
+      "text": "Что произойдёт при компиляции этой функции?\n\nfun len(s: String?): Int {\n    if (s != null) return s.length\n    return 0\n}",
+      "options": [
+        "Не скомпилируется: smart cast к String невозможен",
+        "Скомпилируется: после проверки компилятор сам приводит s к String (smart cast)",        "Скомпилируется, но упадёт с NPE, если s == null",
+        "Всегда вернёт 0"
+      ],
+      "correctAnswer": "1",
+      "explanation": "Компилятор отслеживает проверки: внутри ветки s гарантированно non-null, поэтому s.length валиден без явного каста (smart cast). Ловушка «smart cast невозможен» — так бывает, когда компилятор не может гарантировать неизменность: var-свойство открытого класса или свойство с custom getter. Для таких случаев сохраните значение в локальную val и проверяйте её.",
+      "tags": ["kotlin", "null-safety", "smart-cast"],
+      "difficulty": 0.35
+    },
+    {
+      "id": "ktb_002",
+      "type": "MCQ",
+      "level": 1,
+      "text": "Что произойдёт при выполнении выражения s!!.length, если s == null?",
+      "options": [
+        "Будет выброшено KotlinNullPointerException",
+        "Выражение вернёт null",
+        "Не скомпилируется: length нельзя вызвать у nullable-типа",
+        "Вернётся пустая строка"
+      ],
+      "correctAnswer": "0",
+      "explanation": "!! — явное утверждение «значение не null»: если это не так, рантайм бросает KotlinNullPointerException (наследник NullPointerException). Ловушка «вернёт null» — тип выражения non-null Int, null в нём не влезет; именно поэтому !! не «возвращает» ничего, а валидирует. В прод-коде предпочитают ?. с ?: или checkNotNull(), чтобы падение было осознанным.",
+      "tags": ["kotlin", "null-safety"],
+      "difficulty": 0.3
+    },
+    {
+      "id": "ktb_003",
+      "type": "MCQ",
+      "level": 1,
+      "text": "Функция load() объявлена в companion object класса User. Как правильно вызвать её извне?",
+      "options": [
+        "User.load() — без создания экземпляра",
+        "User().load() — только через экземпляр",
+        "Только User.Companion.load() и никак иначе",
+        "load() доступна без префикса из любого файла проекта"
+      ],
+      "correctAnswer": "0",
+      "explanation": "companion object — синглтон, статик-подобный член класса: доступ по имени класса (User.load()), без экземпляра. User.Companion.load() тоже валидно (Companion — имя объекта по умолчанию), но громоздко. Ловушка «только через экземпляр» — это поведение обычных методов, а не companion; компилятор даже предупредит, что вызов через экземпляр неидиоматичен.",
+      "tags": ["kotlin", "oop", "companion"],
+      "difficulty": 0.25
+    },
+    {
+      "id": "ktb_004",
+      "type": "TRUE_FALSE",
+      "level": 1,
+      "text": "Внутри блока user?.let { it.name } переменная it гарантированно не null, и запрашивать оператор ?: или !! не нужно.",
+      "options": ["Верно", "Неверно"],
+      "correctAnswer": "0",
+      "explanation": "Safe call ?. выполняет let только для non-null receiver, поэтому внутри it уже non-null. Ловушка: let без ?. — это обычная inline-функция области видимости, она ничего с null не делает; null-safety даёт именно связка ?. let. Также полезно знать: let возвращает null, если receiver был null — тогда очередь ?: добивает значение по умолчанию.",
+      "tags": ["kotlin", "null-safety", "scope-functions"],
+      "difficulty": 0.2
+    },
+    {
+      "id": "ktb_005",
+      "type": "INPUT",
+      "level": 1,
+      "text": "Назовите двумя символами оператор, который возвращает левый операнд, если он не null, иначе правый (его часто зовут «оператор Элвиса»).",
+      "options": null,
+      "correctAnswer": "?:",
+      "explanation": "Это элвис-оператор ?: : name ?: \"Гость\" — значение по умолчанию вместо null. Правым операндом может быть и throw/return, что удобно для раннего выхода из функции. Само имя «Элвис» — из-за сходства с повёрнутым лицом: ? похож на волосы, : на глаза.",
+      "tags": ["kotlin", "null-safety", "operators"],
+      "difficulty": 0.2
+    },
+    {
+      "id": "ktb_006",
+      "type": "CARD",
+      "level": 2,
+      "text": "Резюмируйте для команды с Java-бэкграундом: какие инструменты Kotlin работают с null и когда какой уместен.",
+      "options": null,
+      "correctAnswer": "- `?.` — safe call: если receiver null, вызов пропускается, цепочка вернёт null без NPE\n- `?:` — элвис: значение по умолчанию вместо null (правая часть может быть throw/return)\n- `?.let { }` — выполнить блок только для non-null значения\n- `!!` — явно снять проверку: падение KotlinNullPointerException, для прод-кода не годится\n- smart cast — после if/while проверки компилятор сам приводит тип (не работает для var-свойств с custom getter — спасает локальная val)\n- В отличие от Java @Nullable, nullability видна в сигнатуре типа: String? — контракт, а не комментарий",
+      "explanation": "Подсказка: сравните с Java Optional и @Nullable-аннотациями, чьи контракты не проверяются компилятором."
+    }
+  ]
+}

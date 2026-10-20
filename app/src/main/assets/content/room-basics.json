@@ -1,0 +1,96 @@
+{
+  "version": 1,
+  "topic": "room-basics",
+  "questions": [
+    {
+      "id": "rmb_001",
+      "type": "MCQ",
+      "level": 1,
+      "text": "Из каких трёх ключевых частей состоит связка при работе с Room?",
+      "options": [
+        "@Entity (таблица), @Dao (доступ), @Database (точка входа)",
+        "@Entity, @Repository, @ViewModel",
+        "@Table, @Column, @PrimaryKey",
+        "@Entity, @TypeConverter, @Migration"
+      ],
+      "correctAnswer": "0",
+      "explanation": "Канон: data-класс с @Entity становится таблицей, интерфейс с @Dao описывает запросы (@Query/@Insert/@Update/@Delete), абстрактный класс с @Database extends RoomDatabase собирает всё вместе (entities, version) и выдаёт DAO. @Table/@Column — аннотации JPA, не Room.",
+      "tags": ["room", "entity", "dao"],
+      "difficulty": 0.2
+    },
+    {
+      "id": "rmb_002",
+      "type": "MCQ",
+      "level": 2,
+      "text": "DAO-метод возвращает Flow<List<QuestionEntity>>. Когда Flow отдаёт новое значение?",
+      "options": [
+        "При каждом изменении таблиц(ы), затронутых запросом, — Room перевыполнит запрос автоматически",
+        "Один раз: начальное значение, дальше только ручной invalidate",
+        "Только при явном вызове deleteAll на этой таблице",
+        "Никогда: Flow в DAO запрещён, только LiveData"
+      ],
+      "correctAnswer": "0",
+      "explanation": "Room генерирует observable-запрос: при insert/update/delete, затронувших таблицы из запроса, инвалидируется запрос и Flow излучает свежий результат — под капотом InvalidationTracker. Ручного метода нет: Room сам контролирует актуальность. LiveData — тоже валидный вариант, но Flow — современный дефолт с coroutines-интеграцией.",
+      "tags": ["room", "flow", "observable"],
+      "difficulty": 0.35
+    },
+    {
+      "id": "rmb_003",
+      "type": "TRUE_FALSE",
+      "level": 2,
+      "text": "Вызов Room-запроса типа select/insert в главном потоке по умолчанию запрещён — Room бросит IllegalStateException.",
+      "options": ["Верно", "Неверно"],
+      "correctAnswer": "0",
+      "explanation": "Room защищает от ANR: прямой вызов DAO-метода в main thread выбрасывает IllegalStateException («Cannot access database on the main thread»). Обход — allowMainThreadQueries(), но это анти-паттерн и допускается разве что в dev-сборках. suspend-методы и Flow Room сам исполняет на бэк-диспетчере.",
+      "tags": ["room", "threads", "anr"],
+      "difficulty": 0.3
+    },
+    {
+      "id": "rmb_004",
+      "type": "INPUT",
+      "level": 1,
+      "text": "Какая аннотация Room позволяет сохранять поле типа List<String> в TEXT-колонку?",
+      "correctAnswer": "@TypeConverter",
+      "explanation": "@TypeConverter задаёт конверторы: метод fromList (List<String> → JSON/CSV строка) и toList (→ List<String>). Ловушка: конвертор работает в обе стороны и применяется автоматически, но скрытые переводы усложняют WHERE-запросы по таким полям — ставьте сортировку/фильтры по обычным колонкам, а не по сериализованному blob.",
+      "tags": ["room", "typeconverter"],
+      "difficulty": 0.25
+    },
+    {
+      "id": "rmb_005",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Часто фильтруете запросы по колонке topicId. Как объявить индекс, чтобы WHERE не делал полный скан таблицы?",
+      "options": [
+        "@Entity(indices = [Index(\"topicId\")])",
+        "Индексы в Room не поддерживаются — только в сыром SQLite",
+        "@Query(\"CREATE INDEX ...\") на каждый app start вручную",
+        "Поместить topicId в @PrimaryKey"
+      ],
+      "correctAnswer": "0",
+      "explanation": "Индексы задаются прямо в entity: @Entity(indices = [Index(\"topicId\")]) — Room генерирует CREATE INDEX в схеме. Вручную CREATE INDEX через db.execSQL возможен только в миграции. Составные уникальные ограничения — Index(value = [...], unique = true). Ловушка: индексы — не бесплатно (медленнее insert), ставьте только на колонки WHERE/JOIN/ORDER BY.",
+      "tags": ["room", "indexes", "performance"],
+      "difficulty": 0.4
+    },
+    {
+      "id": "rmb_006",
+      "type": "CARD",
+      "level": 3,
+      "text": "Спроектируйте минимальный DAO для приложения-тренажёра: читать список вопросов по теме реактивно, записать пачку вопросов атомарно, очистить таблицу.",
+      "correctAnswer": "### Требуемый DAO\n```kotlin\n@Dao\ninterface QuestionDao {\n    @Query(\"SELECT * FROM questions WHERE topicId = :topicId\")\n    fun observeByTopic(topicId: String): Flow<List<QuestionEntity>>\n\n    @Insert(onConflict = OnConflictStrategy.REPLACE)\n    suspend fun insertAll(items: List<QuestionEntity>)\n\n    @Query(\"DELETE FROM questions\")\n    suspend fun clear()\n}\n```\n### Ключевые решения\n- `Flow` — реактивное обновление UI при любой записи в таблицу\n- `suspend` — не блокирует вызывающий поток, Room сам переключает диспетчер\n- `OnConflictStrategy.REPLACE` — idемпотентный re-seed по стабильным id без дублей\n- пачка `List<Entity>` в одном suspend-вызве — заметно быстрее поштучных инсертов",
+      "explanation": "Совет: уточните, что REPLACE удаляет и пересоздаёт строку — это может триггерить extra-конфликты на foreign keys; при критичности используйте UPSERT (INSERT ... ON CONFLICT DO UPDATE) с Room 2.5+.",
+      "tags": ["room", "dao", "flow"],
+      "difficulty": 0.5
+    },
+    {
+      "id": "rmb_007",
+      "type": "TRUE_FALSE",
+      "level": 2,
+      "text": "Пакетная вставка списка Entity одним suspend-вызовом insertAll будет заметно быстрее, чем вставка элементов по одному в цикле.",
+      "options": ["Верно", "Неверно"],
+      "correctAnswer": "0",
+      "explanation": "Один вызов выполняется внутри единой транзакции и с единой подготовкой statement: выигрыш в десятки раз на больших объёмах. Поштучные вставки создают/коммитят транзакцию на каждый элемент — а каждый commit — это fsync на диск. Ловушка: вызвать insertAll по одному элементу в цикле — получаем ту же деградацию.",
+      "tags": ["room", "performance", "insert"],
+      "difficulty": 0.35
+    }
+  ]
+}

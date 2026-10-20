@@ -1,0 +1,87 @@
+{
+  "version": 1,
+  "topic": "views-basics",
+  "questions": [
+    {
+      "id": "vvb_001",
+      "type": "MCQ",
+      "level": 1,
+      "text": "В каком порядке View-система выполняет три основных прохода отрисовки?",
+      "options": [
+        "onDraw → onMeasure → onLayout",
+        "onMeasure → onLayout → onDraw",
+        "onLayout → onDraw → onMeasure",
+        "onMeasure → onDraw → onLayout"
+      ],
+      "correctAnswer": "1",
+      "explanation": "Сначала measure — каждому View вычисляют размеры (MeasureSpec из родителя), затем layout — раскладка позиций (left/top/right/bottom), затем draw — рисование в Canvas. Неверно выясненные размеры каскадом ломают весь layout, поэтому рекурсивный onMeasure идёт первым.",
+      "tags": ["view", "lifecycle-render"],
+      "difficulty": 0.25
+    },
+    {
+      "id": "vvb_002",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Что означает MeasureSpec mode EXACTLY, который родитель передаёт ребёнку в onMeasure?",
+      "options": [
+        "Ребёнок может быть любого размера",
+        "Ребёнок обязан быть ровно этого размера (фиксированный dp или match_parent)",
+        "Ребёнок должен вписаться, но может быть меньше (wrap_content)",
+        "Размер не определён, View сам решает"
+      ],
+      "correctAnswer": "1",
+      "explanation": "Три mode: EXACTLY — точный размер (фиксированные dp или match_parent относительно родителя); AT_MOST — максимум, поместись или создай меньше (wrap_content); UNSPECIFIED — parent не ограничивает (редко, прокрутки/спец-лейауты). Ловушка: на собесах путают AT_MOST и EXACTLY для match_parent.",
+      "tags": ["view", "measure"],
+      "difficulty": 0.45
+    },
+    {
+      "id": "vvb_003",
+      "type": "MCQ",
+      "level": 1,
+      "text": "Какой компонент превращает XML-layout в дерево View-объектов в рантайме?",
+      "options": [
+        "LayoutInflater",
+        "AnnotationProcessor",
+        "R8",
+        "ConstraintLayoutCompiler"
+      ],
+      "correctAnswer": "0",
+      "explanation": "LayoutInflater (context.getSystemService) парсит XML и создаёт объекты View — именно это происходит внутри setContentView/onCreateView. Процессоры и R8 работают при сборке, а не в рантайме. Ссылки на созданные View связывают findViewById или ViewBinding.",
+      "tags": ["layout", "xml"],
+      "difficulty": 0.2
+    },
+    {
+      "id": "vvb_004",
+      "type": "TRUE_FALSE",
+      "level": 2,
+      "text": "ConstraintLayout позволяет выражать сложные относительные раскладки без глубокой вложенности контейнеров (constraints, chains, Barrier, Guideline), что сокращает глубину иерархии и улучшает прохождение measure/layout.",
+      "options": ["Верно", "Неверно"],
+      "correctAnswer": "0",
+      "explanation": "ConstraintLayout спроектирован как «один контейнер вместо вложенных»: constraints, chains, Barrier, Guideline, DimensionRatio. Меньше вложенность → меньше рекурсивных measure-проходов → меньше jank. Особенно заметно в сложных элементах RecyclerView.",
+      "tags": ["constraintlayout", "performance"],
+      "difficulty": 0.3
+    },
+    {
+      "id": "vvb_005",
+      "type": "INPUT",
+      "level": 2,
+      "text": "Какой метод вызывается у View, чтобы определить собственный размер, получив от родителя ограничения MeasureSpec? Введите имя метода (с префиксом on).",
+      "options": null,
+      "correctAnswer": "onMeasure",
+      "explanation": "onMeasure(widthMeasureSpec, heightMeasureSpec): из spec читаются mode (EXACTLY/AT_MOST/UNSPECIFIED) и size, после чего View обязан вызвать setMeasuredDimension. Родитель затем делает layout по этим размерам. Симметричный метод раскладки — onLayout.",
+      "tags": ["view", "measure"],
+      "difficulty": 0.35
+    },
+    {
+      "id": "vvb_006",
+      "type": "CARD",
+      "level": 3,
+      "text": "Расскажите, как проходят measure/layout/draw и почему глубокая вложенность TextView в LinearLayout в LinearLayout медленнее, чем плоский ConstraintLayout.",
+      "options": null,
+      "correctAnswer": "- measure: рекурсивно сверху вниз; родитель строит MeasureSpec (mode+size) для каждого ребёнка; ребёнок обязуется setMeasuredDimension; у LinearLayout несколько проходов возможны весами (weight)\n- layout: каждому ребёнку назначаются left/top/right/bottom относительно родителя (без пересчёта размеров)\n- draw: 3 шага на View — фон, содержимое onDraw, дети (диспатчинг), затухание/скролл-оверлеи; инвалидация (invalidate) запускает перерисовку, requestLayout — пересчёт measure+layout\n- Вложенность умножает работу: у корневого LinearLayout measuring два раза при wrap_content+weight, каждый уровень — новые рекурсивные вызовы; ConstraintLayout вычисляет всё за один проход в flat-иерархии",
+      "explanation": "Хорошо проговорить разницу invalidate (перерисовать) vs requestLayout (пересчитать размеры и позиции) — частая проверка на собесе. И упомянуть практический эффект: глубина 4+ в item RecyclerView → медленный скролл и дроп кадров.",
+      "tags": ["view", "performance"],
+      "difficulty": 0.6
+    }
+  ]
+}

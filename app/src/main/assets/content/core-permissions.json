@@ -1,0 +1,96 @@
+{
+  "version": 1,
+  "topic": "core-permissions",
+  "questions": [
+    {
+      "id": "corp_001",
+      "type": "MCQ",
+      "level": 1,
+      "text": "С какого изменения API появился runtime-запрос опасных разрешений и как правильно запросить ACCESS_FINE_LOCATION?",
+      "options": [
+        "С API 23: объявить в манифесте и запросить через ActivityResultContracts.RequestPermission",
+        "Достаточно объявить в манифесте один раз",
+        "Только через WRITE_SETTINGS со страницы настроек",
+        "С API 26, иначе установка запрещена"
+      ],
+      "correctAnswer": "0",
+      "explanation": "Начиная с Android 6.0 (API 23) dangerous-разрешения требуют согласия пользователя в рантайме: манифест — необходимое условие, но не достаточное. Канон на современном стеке — Activity Result API (ActivityResultContracts.RequestPermission) вместо deprecated requestPermissions(). WRITE_SETTINGS — отдельный special access, к геолокации отношения не имеет.",
+      "tags": ["permissions", "runtime"],
+      "difficulty": 0.25
+    },
+    {
+      "id": "corp_002",
+      "type": "TRUE_FALSE",
+      "level": 2,
+      "text": "Пользователь может отозвать выданное ранее разрешение в любой момент из настроек, поэтому checkSelfPermission нужно вызывать перед каждым использованием защищённого API.",
+      "options": ["Верно", "Неверно"],
+      "correctAnswer": "0",
+      "explanation": "Выданное dangerous-разрешение отзываемо в любой момент; на Android 11+ включается auto-revoke — сброс неиспользуемых разрешений (unused apps). Поэтому перед обращением к камере, геолокации и т.п. нужно повторно проверять granted-состояние: иначе получаем SecurityException или тихое неадекватное поведение.",
+      "tags": ["permissions", "revoked"],
+      "difficulty": 0.4
+    },
+    {
+      "id": "corp_003",
+      "type": "MCQ",
+      "level": 2,
+      "text": "shouldShowRequestPermissionRationale(location) вернул true после отказа пользователя. Как это трактуется?",
+      "options": [
+        "Пользователь уже отклонял запрос, но не заблокировал его — стоит объяснить, зачем разрешение нужно, и запросить снова",
+        "Разрешение уже выдано, повторный запрос не нужен",
+        "Разрешение заблокировано навсегда, нужно отправить в настройки",
+        "Метод работает только на Android ниже API 30"
+      ],
+      "correctAnswer": "0",
+      "explanation": "true = пользователь отклонял запрос ранее, но системный диалог всё ещё появится при повторном requestPermissions; правильный UX — объяснить значимость и запросить снова. false до первого запроса — его ещё не спрашивали; false после повторного отказа — «don't ask again» / заблокировано, путь только через настройки. Классическая ловушка: считать, что true означает полный отказ.",
+      "tags": ["permissions", "rationale"],
+      "difficulty": 0.5
+    },
+    {
+      "id": "corp_004",
+      "type": "MCQ",
+      "level": 3,
+      "text": "Приложение на Android 13 (API 33) запрашивает доступ к фото. Какой вариант правильный?",
+      "options": [
+        "READ_EXTERNAL_STORAGE игнорируется, нужно READ_MEDIA_IMAGES",
+        "WRITE_EXTERNAL_STORAGE — каноническое разрешение для API 33",
+        "Разрешение не требуется, медиа доступны без запроса",
+        "Нужно новое разрешение WRITE_MEDIA_IMAGES"
+      ],
+      "correctAnswer": "0",
+      "explanation": "С API 33 строгие медиа-разрешения заменяют READ/WRITE_EXTERNAL_STORAGE: READ_MEDIA_IMAGES, READ_MEDIA_VIDEO, READ_MEDIA_AUDIO (legacy обычно объявляют с maxSdkVersion=32). WRITE_MEDIA_IMAGES не существует — фиктивное имя из ловушки. Частичный доступ к выбранным фото появился на API 34 (READ_MEDIA_VISUAL_USER_SELECTED).",
+      "tags": ["permissions", "media", "api33"],
+      "difficulty": 0.55
+    },
+    {
+      "id": "corp_005",
+      "type": "INPUT",
+      "level": 2,
+      "text": "Каким методом (одним словосочетанием) проверяют, выдано ли разрешение, перед его использованием?",
+      "correctAnswer": "checkSelfPermission",
+      "explanation": "ContextCompat.checkSelfPermission(context, permission) возвращает PERMISSION_GRANTED или PERMISSION_DENIED. Ловушка: не путать с PackageManager.checkPermission (deprecated-путь). В архитектуре ViewModel лучший прием — слой, который вернёт логическое состояние вместо Runtime-исключения.",
+      "tags": ["permissions", "check"],
+      "difficulty": 0.3
+    },
+    {
+      "id": "corp_006",
+      "type": "CARD",
+      "level": 3,
+      "text": "Пользователь дважды отказал в камере и выбрал «больше не спрашивать». Опишите правильный UX-сценарий.",
+      "correctAnswer": "### Порядок действий\n- `shouldShowRequestPermissionRationale` после такого отказа вернёт false; повторный `requestPermissions` молча «отклонится» без диалога\n- не рекомендуем: безжалостно переспрашивать — это подрыв доверия\n- показать объяснение: зачем камера нужна, какие функции деградируют без неё\n- предложить переход в настройки: `Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)` с `data = Uri.parse(\"package:...\")`\n- после возврата в приложение — снова `checkSelfPermission`: пользователь мог выдать вручную\n- без разрешения функция показывает заглушку, а не крашится; там, где можно, — альтернатива без пермиссий (Photo Picker через `ActivityResultContracts.PickVisualMedia`)",
+      "explanation": "Совет: true после первого отказа — можно повторно предложить; false после этого — уже «don't ask again». Не жёстко мапьте результат запроса навсегда.",
+      "tags": ["permissions", "ux"],
+      "difficulty": 0.55
+    },
+    {
+      "id": "corp_007",
+      "type": "TRUE_FALSE",
+      "level": 2,
+      "text": "Приложение может дать пользователю выбрать фото без запроса разрешений — через Photo Picker (ActivityResultContracts.PickVisualMedia).",
+      "options": ["Верно", "Неверно"],
+      "correctAnswer": "0",
+      "explanation": "Photo Picker — системный UI: пользователь сам выбирает файл, приложение получает временный доступ (content-URI) без READ-разрешений и без манифестных пермиссий. Это канон для одноразового доступа к медиа и отличный способ обойтись без legacy READ_EXTERNAL_STORAGE.",
+      "tags": ["permissions", "photo-picker", "workaround"],
+      "difficulty": 0.45
+    }
+  ]
+}

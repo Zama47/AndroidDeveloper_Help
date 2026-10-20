@@ -1,0 +1,87 @@
+{
+  "version": 1,
+  "topic": "views-anim",
+  "questions": [
+    {
+      "id": "vva_001",
+      "type": "MCQ",
+      "level": 1,
+      "text": "Что делает ObjectAnimator.ofFloat(view, \"alpha\", 0f, 1f)?",
+      "options": [
+        "Меняет альфа-канал bitmap-файла на диске",
+        "Анимирует свойство alpha (прозрачность): интерполятор меняет значение от 0 до 1 и применяет его к View в течение длительности анимации",
+        "Мгновенно устанавливает прозрачность без анимации",
+        "Создаёт fade-анимацию на уровне окна Window"
+      ],
+      "correctAnswer": "1",
+      "explanation": "ObjectAnimator — property-анимация: значения свойства реально меняются во времени (alpha, translationX, scaleX, rotation и т.д.), поэтому вид соответствует состоянию: прерванная анимация оставит View на текущем значении. Противоположность — старые View (tween) анимации, которые меняют лишь картинку перерисовки.",
+      "tags": ["animation", "property-animator"],
+      "difficulty": 0.3
+    },
+    {
+      "id": "vva_002",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Чем ValueAnimator (без propertyName) отличается от ObjectAnimator?",
+      "options": [
+        "ValueAnimator мгновенно делает все анимации параллельно",
+        "ValueAnimator просто генерирует значения по времени в коллбэке, а вы сами применяете их; ObjectAnimator делает это сам, вызывая сеттер свойства",
+        "ValueAnimator работает только с цветом",
+        "Разница только в названии"
+      ],
+      "correctAnswer": "1",
+      "explanation": "ValueAnimator выдаёт прогресс (значения читаете в onAnimationUpdate сами), ObjectAnimator автоматизирует: propertyName + getter/setter, и меняет свойство напрямую. Ловушка: ObjectAnimator для собственного свойства требует публичный setter (например, setProgress) — иначе PropertyNotFoundException.",
+      "tags": ["animation"],
+      "difficulty": 0.5
+    },
+    {
+      "id": "vva_003",
+      "type": "TRUE_FALSE",
+      "level": 1,
+      "text": "view.animate().alpha(0f).setDuration(300) возвращает ViewPropertyAnimator — компактный способ запускать несколько property-анимаций на одном View без ручного создания ObjectAnimator.",
+      "options": ["Верно", "Неверно"],
+      "correctAnswer": "0",
+      "explanation": "view.animate() лениво создаёт ViewPropertyAnimator, который держит набор одновременных свойств (alpha, translation, scale, rotation) с общими duration/interpolator-настройками и общими duration/interpolator-настройками и коллбэками в withEndAction. Это самый популярный краткий API для простых property-анимаций",
+      "tags": ["animation"],
+      "difficulty": 0.3
+    },
+    {
+      "id": "vva_004",
+      "type": "INPUT",
+      "level": 2,
+      "text": "Какой класс (потомок ConstraintLayout) описывает сложные переходы между двумя раскладками через XML-файлы MotionScene? Введите одно слово.",
+      "options": null,
+      "correctAnswer": "MotionLayout",
+      "explanation": "MotionLayout — подкласс ConstraintLayout, описывающий переходы между constraint-set-ами через MotionScene (XML, почти без кода): start/end states, OnSwipe/OnClick, KeyFrame для промежуточных состояний. Удобен для сложных, но декларативных сцен вроде collapsing toolbar и drag-to-reveal.",
+      "tags": ["motionlayout", "animation"],
+      "difficulty": 0.4
+    },
+    {
+      "id": "vva_005",
+      "type": "MCQ",
+      "level": 2,
+      "text": "В чём принципиальный минус «старых» View-анимаций (tween: AlphaAnimation, TranslateAnimation) против property-анимаций (ObjectAnimator)?",
+      "options": [
+        "Они работают только на серверных приложениях",
+        "Они анимируют только отрисовку: View реально остаётся в старом месте иерархии, а касания и фокус обрабатываются по старому прямоугольнику",
+        "Они не имеют интерполяторов",
+        "Они работают только на API 30+"
+      ],
+      "correctAnswer": "1",
+      "explanation": "Tween-анимации меняют только отрисованную картинку: свойства View (позиция, масштаб) не меняются, поэтому touch-зона и расположение остаются прежними — классический источник багов «кнопка нажимается не там». Property-анимации честно меняют свойства: alpha/scale/position — и клики, и фокус следуют за объектом.",
+      "tags": ["animation", "view"],
+      "difficulty": 0.5
+    },
+    {
+      "id": "vva_006",
+      "type": "CARD",
+      "level": 3,
+      "text": "Перечислите, какие инструменты анимации есть в View-cтеке и когда какой уместить: property-анимации (ObjectAnimator/ValueAnimator, ViewPropertyAnimator), MotionLayout, Transition/TransitionManager, транзишены активити.",
+      "options": null,
+      "correctAnswer": "- ViewPropertyAnimator / ObjectAnimator: простые эффекты одного View — fade, slide, scale, pulse; лучший выбор для micro-interactions\n- ValueAnimator + собственный update-коллбек: нестандартные величины (например, анимация своего свойства View)\n- MotionLayout: сцены-переходы между ConstraintSet, ключевые кадры, жесты (collapsing toolbar, onboarding, drag-to-reveal) в XML\n- Transition/TransitionManager: авто-переходы между layout-ами (beginDelayedTransition, ChangeBounds) — без ручного AnimatorSet\n- Activity/Fragment транзишены + SharedElements: сквозной переход между экранами (карточка → детализация)\n- AnimatedVectorDrawable: анимированные иконки\n- Не путать: tween-анимации (AlphaAnimation) — legacy, для новых экранов не используем",
+      "explanation": "Ключевая рамка: один View — property-анимация; сцены — MotionLayout/Transition; между экранами — shared elements. Стоп-сигнал: если вы вручную собираете длинный AnimatorSet, скорее уместен MotionLayout.",
+      "tags": ["animation", "motionlayout", "transitions"],
+      "difficulty": 0.6
+    }
+  ]
+}

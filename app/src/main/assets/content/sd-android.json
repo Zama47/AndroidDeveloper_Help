@@ -1,0 +1,119 @@
+{
+  "version": 1,
+  "topic": "sd-android",
+  "questions": [
+    {
+      "id": "sda_001",
+      "type": "MCQ",
+      "level": 2,
+      "text": "В чём суть offline-first подхода в Android-приложении?",
+      "options": [
+        "Запрещать работу без сети и показывать error-экран",
+        "Room/локальная БД — single source of truth для UI; сеть лишь обновляет БД; UI никогда не читает напрямую из сети",
+        "Кэшировать все ответы в SharedPreferences",
+        "Отключать сеть в приложении изначально"
+      ],
+      "correctAnswer": "1",
+      "explanation": "Offline-first: UI подписан на Flow из Room — отклик мгновенный, оффлайн-режим работает; сетевой слой пишет в Room (RemoteMediator в Paging, Repository-паттерн). Отличие от cache-first: offline-first — про архитектуру источника истины, cache-first — HTTP-кэш, который не даёт полного оффлайна.",
+      "tags": ["mobile", "offline-first"],
+      "difficulty": 0.5
+    },
+    {
+      "id": "sda_002",
+      "type": "MCQ",
+      "level": 3,
+      "text": "Как спроектировать инкрементальную синхронизацию между клиентом и сервером?",
+      "options": [
+        "Полностью перезаливать все данные при каждом запуске",
+        "Сервер ведёт монотонно растущий курсор/seq на изменение; клиент тянет /sync?since=last_seq (или /changes?cursor), применяет, атомарно сохраняет last_seq; при потере курсора — resume с ближайшей точки",
+        "Синхронизация только по push-событиям, без доп-запросов",
+        "Кэшировать diff по времени устройства и считать его курсором"
+      ],
+      "correctAnswer": "1",
+      "explanation": "Sequenced-based (монотонная последовательность изменений, не время устройства!) — канонический ответ: сервер не доверяет часам клиента, delta = /sync?since=seq, пагинация — по курсору (не offset). Потеря курса — восстановление с последнего полного snapshot (checkpoint), иначе — полный resync. Тот же паттерн применяют в фидах, мессенджерах, списке задач и FCM-синхронизации.",
+      "tags": ["mobile", "sync"],
+      "difficulty": 0.7
+    },
+    {
+      "id": "sda_003",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Push (FCM) vs pull (WorkManager periodic / on-open) — что верно?",
+      "options": [
+        "Push гарантирован всегда, pull не нужен",
+        "Push — для срочных событийных обновлений (сообщение, звонок); pull — для плановой фоновой синхронизации; push не гарантирован, поэтому pull-проверка при открытии/WorkManager всё равно обязательны",
+        "Pull — батарея не тратится, push тратит",
+        "Push для больших данных, pull для маленьких"
+      ],
+      "correctAnswer": "1",
+      "explanation": "Полезный шаблон: push = «сигнал к действию» (small, data-type), pull = «гиперпуляция» (batched, проверка при открытии/на ограничениях сети). FCM собирает best-effort: устройство офлайн, killed-процесс, ограничения OEM — доставка могут опаздывать/теряться. Критичные данные нельзя строить только на push.",
+      "tags": ["mobile", "fcm", "sync"],
+      "difficulty": 0.6
+    },
+    {
+      "id": "sda_004",
+      "type": "TRUE_FALSE",
+      "level": 2,
+      "text": "FCM-push гарантированно доставляется во всех состояниях приложения (foreground, background, killed).",
+      "options": ["Верно", "Неверно"],
+      "correctAnswer": "1",
+      "explanation": "FCM — best effort: при killed-процессе notification-push покажет системный трей (его рисует сам FCM), но data-push для тихой синхронизации может не разбудить приложение (особенно на агрессивных OEM-скинах, при Doze, без разрешения на уведомления). Поэтому критичные данные — через pull/WorkManager, push — только как ускоритель.",
+      "tags": ["mobile", "fcm"],
+      "difficulty": 0.55
+    },
+    {
+      "id": "sda_005",
+      "type": "INPUT",
+      "level": 1,
+      "text": "Компонент androidx для отложенной фоновый работы с ограничениями (сеть, зарядка) и экспоненциальным backoff. Одно слово-название.",
+      "options": null,
+      "correctAnswer": "workmanager",
+      "explanation": "WorkManager — persistence-задачи (Doze-friendly), ConstraintType (NetworkType.UNMETERED), экспоненциальный backoff по умолчанию. Сиюминутные (запуск UI) — корутины; долгоживущие юзеру видимые — foreground service.",
+      "tags": ["mobile", "background"],
+      "difficulty": 0.3
+    },
+    {
+      "id": "sda_006",
+      "type": "MCQ",
+      "level": 3,
+      "text": "Сервер добавил новое поле в JSON-ответ, старые клиенты ещё в проде. Что должно произойти по-хорошему?",
+      "options": [
+        "Все старые клиенты сразу падают — нужен форсапдейт",
+        "Ничего: API проектируется forward-compatible — клиент игнорирует неизвестные поля (kotlinx.serialization ignoreUnknownKeys); удалять/переименовывать поля можно только через deprecation window",
+        "Клиент должен использовать поле как enum-значение по умолчанию",
+        "Сервер обязан отдавать два формата одновременно"
+      ],
+      "correctAnswer": "1",
+      "explanation": "Forward compatibility — дизайнерское требование к мобильному API: неизвестные поля игнорируются по умолчанию, enum — lenient-значения (UNKNOWN fallback), удаление/rename — мягкое (deprecation + финальный hard-cut только после исчезновения старых версий в дашбордах). Дополнительно: клиент шлёт app_version/platform header — сервер может включать фичи и считать живых пользователей версии.",
+      "tags": ["mobile", "api-versioning"],
+      "difficulty": 0.7
+    },
+    {
+      "id": "sda_007",
+      "type": "MCQ",
+      "level": 3,
+      "text": "Версионирование мобильного API: какая стратегия канонична?",
+      "options": [
+        "Не версииаться, просто обновлять схему",
+        "Version в URL (/v1/) или header + мягкая деprecation с окном поддержки; BFF (backend-for-frontend), если мобильный формат сильно отличается; клиент передаёт versioning-заголовки для feature flags",
+        "Версия только в теле запроса",
+        "Каждый релиз — новый домен"
+      ],
+      "correctAnswer": "1",
+      "explanation": "Практика: /v1/ or Accept header — понятная эволюция; breaking-изменения → /v2/, при этом /v1 живёт N месяцев (окно подпорки). BFF: один «собранный под экран» эндпоинт вместо пяти — снижение chattiness и мобильного трафика. Не путать: version schema ≠ feature flags — фиче-режимы часто управляют через Remote Config, а не версию API.",
+      "tags": ["mobile", "api-versioning"],
+      "difficulty": 0.65
+    },
+    {
+      "id": "sda_008",
+      "type": "CARD",
+      "level": 3,
+      "text": "Ловушки мобильного System Design интервью: какие клиентские ограничения часто «забывают» и как их надо проговаривать?",
+      "options": null,
+      "correctAnswer": "- Сеть: нестабильная/дорогая — кэш-ответы, retry с backoff+jitter, сжатие (gzip/brotli, gRPC), батчинг нескольких запросов, короткие таймауты\n- Батарея и радио: каждое пробуждение радио энергозатратно — батчинг, WorkManager с constraint, push вместо poll, Doze-ограничения\n- Жизненный цикл: process death, сохранение state (ViewModel+savedInstanceState), синхронизация при возврате\n- Разнобой устройств: слабые девайсы и OEM-скины, агрессивно убивающие фоновые процессы/FCM-доставку — нужны деградации и pull-fallbacks\n- Privacy/permission: Android 13+ POST_NOTIFICATIONS, фоновые ограничения, хранение секретов в Keystore\n- UX офлайна: индикатор синхронизации, отложенные действия вместо ошибок, явная политика разрешения конфликтов\n- Соблюдать рамку: сначала requirements (что за устройство, % офлайна, качество сети), потом только дизайн",
+      "explanation": "Интервьюер проверяет, понимаете ли вы, что мобильный SD — не «мини-бэкенд». Проговаривание оффлайна/батареи/сети до дизайна схемы — признак зрелости.",
+      "tags": ["mobile", "system-design", "interview"],
+      "difficulty": 0.7
+    }
+  ]
+}

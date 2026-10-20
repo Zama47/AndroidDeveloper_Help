@@ -1,0 +1,85 @@
+{
+  "version": 1,
+  "topic": "coro-cancel",
+  "questions": [
+    {
+      "id": "crc_001",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Внутри корутины крутится CPU-цикл без suspend-вызовов. После cancel() цикл продолжает работать. Как сделать его отменяемым?",
+      "options": [
+        "Добавить точки кооперативной отмены: внутри цикла вызывать ensureActive(), yield() или проверять isActive",
+        "Обернуть цикл в try/catch (InterruptedException)",
+        "Переключить корутину на Dispatchers.IO — отмена там принудительная",
+        "Ничего нельзя: корутина обязана завершить работу после cancel()"
+      ],
+      "correctAnswer": "0",
+      "explanation": "Отмена в корутинах кооперативная: она срабатывает в точках suspension или явных проверках isActive/ensureActive()/yield(). Ловушка «InterruptedException» — это про потоки Java, не про корутины; Dispatchers не делает отмену принудительной, он лишь заменяет пул потоков. ensureActive() бросит CancellationException сразу, isActive даст мягкую остановку.",
+      "tags": ["coroutines", "cancellation"],
+      "difficulty": 0.45
+    },
+    {
+      "id": "crc_002",
+      "type": "MCQ",
+      "level": 2,
+      "text": "В CoroutineScope, созданном с обычным Job(), падение одного launch отменяет остальных «детей». Как изолировать детей друг от друга?",
+      "options": [
+        "SupervisorJob() в scope или supervisorScope { } — ошибка одного child не отменяет parent и sibling'ов",
+        "Dispatchers.Unconfined",
+        "Ничего нельзя — Job всегда транслирует отмену обоим направлениям",
+        "Запускать каждого child в try/catch — отмена siblings тогда не воспроизводится никогда"
+      ],
+      "correctAnswer": "0",
+      "explanation": "Обычный Job — «fail fast»: любая необработанная ошибка отменяет родителя и, следом, всех детей. SupervisorJob локализует сбой: остальным детям — своя жизнь. Ловушка: с SupervisorJob необработанные исключения children идут в CoroutineExceptionHandler scope, а не вверх. viewModelScope внутри себя уже SupervisorJob — ViewModel специально не хочет, чтобы упавшая корутина ломала остальные.",
+      "tags": ["coroutines", "supervisorjob", "structured-concurrency"],
+      "difficulty": 0.55
+    },
+    {
+      "id": "crc_003",
+      "type": "MCQ",
+      "level": 3,
+      "text": "Что не так с кодом ниже (внутри корутины)?\n\ntry {\n    doWork()\n} catch (e: Exception) {\n    log(e)\n}",
+      "options": [
+        "catch (Exception) проглотит CancellationException: отмена не прорвётся наружу, структурированная отмена сломается — надо ловить конкретные типы или перебросить CancellationException",
+        "Ничего: Exception — правильный базовый тип для try/catch",
+        "Код не скомпилируется: внутри suspend-функции нет try/catch",
+        "finally обязан идти после catch, иначе рантайм-ошибка"
+      ],
+      "correctAnswer": "0",
+      "explanation": "Отмена реализована через CancellationException: если catch(Exception) его съест, родитель посчитает child отменённым, а код продолжит работать — утечка и рассинхрон. Ловушки с finally — детали не важны, критично именно проглоченное исключение отмены. Канон: catch (e: CancellationException) { throw e }, а перехватывать — только ваш доменный тип, не Exception.",
+      "tags": ["coroutines", "cancellation", "exception"],
+      "difficulty": 0.65
+    },
+    {
+      "id": "crc_004",
+      "type": "TRUE_FALSE",
+      "level": 3,
+      "text": "Если внутри блока withTimeout поймать TimeoutCancellationException и не перебросить, оставшаяся часть блока может продолжить выполняться.",
+      "options": ["Верно", "Неверно"],
+      "correctAnswer": "0",
+      "explanation": "TimeoutCancellationException — CancellationException; перехватив его локально, вы обезвреживаете сигнал отмены именно для этого блока, и код идёт дальше. Это главный источник «залипших» таймаутов. Канон: извне ловите TimeoutCancellationException только чтобы обработать результат, внутри блока не перехватывайте Exception навесом.",
+      "tags": ["coroutines", "timeout", "cancellation"],
+      "difficulty": 0.7
+    },
+    {
+      "id": "crc_005",
+      "type": "INPUT",
+      "level": 1,
+      "text": "Назовите camelCase-функцию корутин, которая ограничивает блок по времени и в случае превышения бросит TimeoutCancellationException.",
+      "options": null,
+      "correctAnswer": "withTimeout",
+      "explanation": "withTimeout(5000) { ... } — если блок не уложился, корутина отменяется с TimeoutCancellationException (наследник CancellationException). Есть версия withTimeoutOrNull — при таймауте вернёт null вместо исключения, удобно для soft-fallback. Важно: тайм-аут относится к suspension-точкам, чистый CPU-код таймаут сам по себе не остановит — см. кооперативность.",
+      "tags": ["coroutines", "timeout"],
+      "difficulty": 0.25
+    },
+    {
+      "id": "crc_006",
+      "type": "CARD",
+      "level": 3,
+      "text": "Корутина держит открытую сеть/файл. Как гарантировать финализацию ресурсов при отмене?",
+      "options": null,
+      "correctAnswer": "- finally выполняется и при отмене — очистку заведите именно туда\n- Внутри finally нельзя вызывать suspend: оберните в withContext(NonCancellable) { close() } — иначе вызов отмены-контекста сам будет отменён\n- ensureActive()/isActive между итерациями дадут быстрый выход к finally при cancel()\n- Ловушка: полагаться на GC/финализаторы — открытые сокеты и утёкшие ресурсы\n- Не поглощать CancellationException в cleanup-коде — rethrow",
+      "explanation": "Подсказка: что именно нельзя делать сразу в finally без NonCancellable и почему."
+    }
+  ]
+}

@@ -1,95 +1,71 @@
 {
-  "version": 1,
+  "version": 2,
   "topics": [
-    {
-      "id": "kotlin",
-      "parentId": null,
-      "title": "Kotlin",
-      "description": "Синтаксис, типы, ООП, функции высшего порядка, generics, null-safety. Фундамент всех собеседований Android-разработчика.",
-      "level": 1,
-      "orderIndex": 1,
-      "icon": "code"
-    },
-    {
-      "id": "coroutines",
-      "parentId": null,
-      "title": "Coroutines и Flow",
-      "description": "Структурированная конкурентность, scope, dispatchers, отмена, Flow, StateFlow/SharedFlow, холодные и горячие потоки.",
-      "level": 2,
-      "orderIndex": 2,
-      "icon": "sync"
-    },
-    {
-      "id": "compose",
-      "parentId": null,
-      "title": "Jetpack Compose",
-      "description": "Декларативный UI: recomposition, state, эффекты, производительность, Material 3, навигация и анимации.",
-      "level": 2,
-      "orderIndex": 3,
-      "icon": "brush"
-    },
-    {
-      "id": "architecture",
-      "parentId": null,
-      "title": "Архитектура",
-      "description": "MVVM, MVI, Clean Architecture, однонаправленный поток данных, слои, Repository, use cases, жизненный цикл.",
-      "level": 2,
-      "orderIndex": 4,
-      "icon": "layers"
-    },
-    {
-      "id": "room",
-      "parentId": null,
-      "title": "Room и хранилища",
-      "description": "SQLite поверх Room: DAO, миграции, Flow-запросы, TypeConverter, DataStore, кэширование и офлайн-first.",
-      "level": 2,
-      "orderIndex": 5,
-      "icon": "storage"
-    },
-    {
-      "id": "hilt",
-      "parentId": null,
-      "title": "DI: Hilt",
-      "description": "Внедрение зависимостей: компоненты, скоупы, модули, @Binds vs @Provides, тестирование с заменой зависимостей.",
-      "level": 2,
-      "orderIndex": 6,
-      "icon": "build"
-    },
-    {
-      "id": "android_core",
-      "parentId": null,
-      "title": "Android Core",
-      "description": "Жизненный цикл Activity/Fragment, process death, конфигурации, Context, Intents, разрешения, Service, WorkManager.",
-      "level": 1,
-      "orderIndex": 7,
-      "icon": "phone_android"
-    },
-    {
-      "id": "performance",
-      "parentId": null,
-      "title": "Производительность",
-      "description": "Jank, главный поток, память и утечки, Baseline Profiles, замер времени выполнения, деградации батареи.",
-      "level": 3,
-      "orderIndex": 8,
-      "icon": "speed"
-    },
-    {
-      "id": "testing",
-      "parentId": null,
-      "title": "Тестирование",
-      "description": "JUnit, unit-тесты ViewModel/UseCase, TDD, instrumented-тесты, Compose Testing, моки, тест двойники.",
-      "level": 2,
-      "orderIndex": 9,
-      "icon": "fact_check"
-    },
-    {
-      "id": "system_design",
-      "parentId": null,
-      "title": "System Design",
-      "description": "Проектирование приложений и бэкендов: REST, пагинация, офлайн-синхронизация, кэширование, масштабирование.",
-      "level": 3,
-      "orderIndex": 10,
-      "icon": "account_tree"
-    }
+    { "id": "kotlin", "parentId": null, "title": "Kotlin", "description": "Синтаксис, типы, ООП, функции высшего порядка, generics, null-safety. Фундамент всех собеседований Android-разработчика.", "level": 1, "orderIndex": 1, "icon": "code" },
+    { "id": "kotlin-basics", "parentId": "kotlin", "title": "Синтаксис и null-safety", "description": "val/var, smart cast, ?, !!, let, safe calls.", "level": 1, "orderIndex": 101, "icon": "code" },
+    { "id": "kotlin-collections", "parentId": "kotlin", "title": "Коллекции и ленивость", "description": "List/Set/Map, мутабельность, map/filter/reduce, sequences.", "level": 2, "orderIndex": 102, "icon": "code" },
+    { "id": "kotlin-oop", "parentId": "kotlin", "title": "ООП: data, sealed, generics", "description": "data class, sealed, object, variance, делегирование.", "level": 2, "orderIndex": 103, "icon": "code" },
+
+    { "id": "coroutines", "parentId": null, "title": "Coroutines и Flow", "description": "Структурированная конкурентность, scope, dispatchers, отмена, Flow, StateFlow/SharedFlow.", "level": 2, "orderIndex": 2, "icon": "sync" },
+    { "id": "coro-basics", "parentId": "coroutines", "title": "Корутины: основы", "description": "suspend, scope, Dispatchers, launch vs async.", "level": 1, "orderIndex": 201, "icon": "sync" },
+    { "id": "coro-flow", "parentId": "coroutines", "title": "Flow: холодные и горячие", "description": "Операторы, StateFlow vs SharedFlow, catch/retry.", "level": 2, "orderIndex": 202, "icon": "sync" },
+    { "id": "coro-cancel", "parentId": "coroutines", "title": "Отмена и структурированность", "description": "Job, SupervisorJob, CancellationException, withTimeout.", "level": 3, "orderIndex": 203, "icon": "sync" },
+
+    { "id": "compose", "parentId": null, "title": "Jetpack Compose", "description": "Декларативный UI: recomposition, state, эффекты, производительность, Material 3.", "level": 2, "orderIndex": 3, "icon": "brush" },
+    { "id": "compose-recomposition", "parentId": "compose", "title": "Композиция и recomposition", "description": "Как Compose строит UI, skipping, стабильность.", "level": 1, "orderIndex": 301, "icon": "brush" },
+    { "id": "compose-state", "parentId": "compose", "title": "Состояние и hoisting", "description": "remember, rememberSaveable, single source of truth.", "level": 2, "orderIndex": 302, "icon": "brush" },
+    { "id": "compose-effects", "parentId": "compose", "title": "Побочные эффекты", "description": "LaunchedEffect, SideEffect, DisposableEffect, ключи.", "level": 3, "orderIndex": 303, "icon": "brush" },
+
+    { "id": "architecture", "parentId": null, "title": "Архитектура", "description": "MVVM, MVI, Clean Architecture, однонаправленный поток данных, слои, Repository, use cases.", "level": 2, "orderIndex": 4, "icon": "layers" },
+    { "id": "arch-mvvm", "parentId": "architecture", "title": "MVVM и ViewModel", "description": "ViewModel, LiveData vs StateFlow, события.", "level": 1, "orderIndex": 401, "icon": "layers" },
+    { "id": "arch-clean", "parentId": "architecture", "title": "Clean Architecture", "description": "Слои, use cases, границы зависимостей.", "level": 2, "orderIndex": 402, "icon": "layers" },
+    { "id": "arch-modules", "parentId": "architecture", "title": "Модульность", "description": "Multi-module, api vs implementation, зачем делить.", "level": 3, "orderIndex": 403, "icon": "layers" },
+
+    { "id": "room", "parentId": null, "title": "Room и хранилища", "description": "SQLite поверх Room: DAO, миграции, Flow-запросы, TypeConverter.", "level": 2, "orderIndex": 5, "icon": "storage" },
+    { "id": "room-basics", "parentId": "room", "title": "Room: базовые понятия", "description": "@Entity, @Dao, @Database, suspend/Flow-запросы.", "level": 1, "orderIndex": 501, "icon": "storage" },
+    { "id": "room-relations", "parentId": "room", "title": "Связи и вложенные объекты", "description": "@Embedded, @Relation, 1-N и N-M.", "level": 2, "orderIndex": 502, "icon": "storage" },
+    { "id": "room-migrations", "parentId": "room", "title": "Миграции и версии", "description": "Migration SQL, exportSchema, риски destructive.", "level": 3, "orderIndex": 503, "icon": "storage" },
+
+    { "id": "hilt", "parentId": null, "title": "DI: Hilt", "description": "Внедрение зависимостей: компоненты, скоупы, модули, тестирование.", "level": 2, "orderIndex": 6, "icon": "build" },
+    { "id": "hilt-basics", "parentId": "hilt", "title": "DI и базовые аннотации", "description": "@HiltAndroidApp, @AndroidEntryPoint, @Inject.", "level": 1, "orderIndex": 601, "icon": "build" },
+    { "id": "hilt-scopes", "parentId": "hilt", "title": "Компоненты и скоупы", "description": "SingletonComponent, скоупы, @Module @InstallIn.", "level": 2, "orderIndex": 602, "icon": "build" },
+    { "id": "hilt-advanced", "parentId": "hilt", "title": "Qualifiers и DI в тестах", "description": "@Qualifier, @Binds vs @Provides, подмена в тестах.", "level": 3, "orderIndex": 603, "icon": "build" },
+
+    { "id": "android_core", "parentId": null, "title": "Android Core", "description": "Жизненный цикл Activity/Fragment, process death, Context, Intents, разрешения, Service, WorkManager.", "level": 1, "orderIndex": 7, "icon": "phone_android" },
+    { "id": "core-lifecycle", "parentId": "android_core", "title": "Жизненный цикл Activity", "description": "onCreate→onResume, поворот экрана, process death.", "level": 1, "orderIndex": 701, "icon": "phone_android" },
+    { "id": "core-intents", "parentId": "android_core", "title": "Intents и deep link", "description": "Explicit vs implicit, extras, deep link, back stack.", "level": 2, "orderIndex": 702, "icon": "phone_android" },
+    { "id": "core-permissions", "parentId": "android_core", "title": "Разрешения", "description": "Runtime permissions, rationale, альтернативы.", "level": 2, "orderIndex": 703, "icon": "phone_android" },
+
+    { "id": "performance", "parentId": null, "title": "Производительность", "description": "Jank, главный поток, память и утечки, cold start.", "level": 3, "orderIndex": 8, "icon": "speed" },
+    { "id": "perf-ui", "parentId": "performance", "title": "Рендеринг и jank", "description": "Бюджет кадра, overdraw, инструменты профилирования.", "level": 2, "orderIndex": 801, "icon": "speed" },
+    { "id": "perf-memory", "parentId": "performance", "title": "Память и утечки", "description": "Memory leaks, LeakCanary, bitmap, GC.", "level": 3, "orderIndex": 802, "icon": "speed" },
+    { "id": "perf-startup", "parentId": "performance", "title": "Cold start и оптимизация", "description": "Типы старта, lazy init, App Startup.", "level": 3, "orderIndex": 803, "icon": "speed" },
+
+    { "id": "testing", "parentId": null, "title": "Тестирование", "description": "JUnit, unit-тесты ViewModel/UseCase, моки, Compose Testing.", "level": 2, "orderIndex": 9, "icon": "fact_check" },
+    { "id": "test-units", "parentId": "testing", "title": "Unit-тесты и корутины", "description": "AAA, runTest, TestDispatcher.", "level": 1, "orderIndex": 901, "icon": "fact_check" },
+    { "id": "test-mocks", "parentId": "testing", "title": "Мокирование", "description": "fake/stub/spy/mock, MockK, границы моков.", "level": 2, "orderIndex": 902, "icon": "fact_check" },
+    { "id": "test-compose-ui", "parentId": "testing", "title": "UI-тесты в Compose", "description": "composeTestRule, semantics, onNodeWithText.", "level": 2, "orderIndex": 903, "icon": "fact_check" },
+
+    { "id": "system_design", "parentId": null, "title": "System Design", "description": "Проектирование приложений и бэкендов: требования, масштабирование, кэширование, очереди, мобильный SD.", "level": 3, "orderIndex": 10, "icon": "account_tree" },
+    { "id": "sd-requirements", "parentId": "system_design", "title": "Requirements и capacity", "description": "Функциональные/нефункциональные требования, QPS, оценки.", "level": 1, "orderIndex": 1001, "icon": "account_tree" },
+    { "id": "sd-scaling", "parentId": "system_design", "title": "Масштабирование", "description": "Vertical vs horizontal, балансировщики, monolith vs microservices.", "level": 2, "orderIndex": 1002, "icon": "account_tree" },
+    { "id": "sd-caching", "parentId": "system_design", "title": "Кэширование и CDN", "description": "Слои кэша, инвалидация, TTL, stampede.", "level": 3, "orderIndex": 1003, "icon": "account_tree" },
+    { "id": "sd-queues", "parentId": "system_design", "title": "Очереди и асинхронность", "description": "Message queue, идемпотентность, DLQ, event-driven.", "level": 3, "orderIndex": 1004, "icon": "account_tree" },
+    { "id": "sd-android", "parentId": "system_design", "title": "Системный дизайн в Android", "description": "Offline-first, синхронизация, push vs pull, версионирование API.", "level": 3, "orderIndex": 1005, "icon": "account_tree" },
+
+    { "id": "network", "parentId": null, "title": "Сеть и API", "description": "HTTP/REST, Retrofit и OkHttp, обработка ошибок, ретраи и надёжность сетевого слоя.", "level": 2, "orderIndex": 11, "icon": "cloud" },
+    { "id": "net-http", "parentId": "network", "title": "HTTP и REST", "description": "Методы, статусы, идемпотентность, JSON, headers.", "level": 1, "orderIndex": 1101, "icon": "cloud" },
+    { "id": "net-retrofit", "parentId": "network", "title": "Retrofit и OkHttp", "description": "Интерфейсы, аннотации, interceptors, конвертеры.", "level": 2, "orderIndex": 1102, "icon": "cloud" },
+    { "id": "net-reliability", "parentId": "network", "title": "Ошибки и надёжность", "description": "Ретраи с бэкоффом, таймауты, offline-first.", "level": 3, "orderIndex": 1103, "icon": "cloud" },
+
+    { "id": "storage", "parentId": null, "title": "Хранение данных", "description": "SharedPreferences и DataStore, файлы и scoped storage, выбор хранилища под задачу.", "level": 2, "orderIndex": 12, "icon": "save" },
+    { "id": "store-prefs", "parentId": "storage", "title": "Preferences и DataStore", "description": "SharedPreferences, Preferences/Proto DataStore, миграция.", "level": 1, "orderIndex": 1201, "icon": "save" },
+    { "id": "store-files", "parentId": "storage", "title": "Файлы и scoped storage", "description": "Internal/external, MediaStore, FileProvider.", "level": 2, "orderIndex": 1202, "icon": "save" },
+    { "id": "store-choice", "parentId": "storage", "title": "Выбор хранилища", "description": "Когда SP/DataStore/Room/Files, объём данных.", "level": 2, "orderIndex": 1203, "icon": "save" },
+
+    { "id": "view_system", "parentId": null, "title": "View-система", "description": "XML-вёрстка, RecyclerView, анимации — то, что всё ещё спрашивают рядом с Compose.", "level": 2, "orderIndex": 13, "icon": "visibility" },
+    { "id": "views-basics", "parentId": "view_system", "title": "XML-вёрстка и иерархия View", "description": "LayoutInflater, measure/layout, ConstraintLayout.", "level": 1, "orderIndex": 1301, "icon": "visibility" },
+    { "id": "views-recycler", "parentId": "view_system", "title": "RecyclerView", "description": "Adapter/ViewHolder, DiffUtil, пулинг, Paging.", "level": 2, "orderIndex": 1302, "icon": "visibility" },
+    { "id": "views-anim", "parentId": "view_system", "title": "Анимации и переходы", "description": "Property animations, MotionLayout, транзишены.", "level": 3, "orderIndex": 1303, "icon": "visibility" }
   ]
 }

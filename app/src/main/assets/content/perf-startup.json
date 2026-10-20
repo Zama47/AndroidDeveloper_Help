@@ -1,0 +1,87 @@
+{
+  "version": 1,
+  "topic": "perf-startup",
+  "questions": [
+    {
+      "id": "prs_001",
+      "type": "MCQ",
+      "level": 1,
+      "text": "Пользователь тапнул по иконке приложения впервые после перезагрузки телефона — процесса приложения ещё не существовало. Какой это тип старта?",
+      "options": [
+        "Cold start: система создаёт процесс, затем идёт Application.onCreate и пересоздаётся Activity",
+        "Warm start",
+        "Hot start",
+        "Это не старт, а restore"
+      ],
+      "correctAnswer": "0",
+      "explanation": "Cold start — самый дорогой: fork процесса (от Zygote), загрузка/инициализация классов, Application.onCreate → Activity.onCreate/Start/Resume → первый кадр (TTID). Warm — процесс живой, но Activity пересоздаётся; hot — всё уже в памяти, просто возвращаем окно на передний план.",
+      "tags": ["startup"],
+      "difficulty": 0.25
+    },
+    {
+      "id": "prs_002",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Что такое warm start по сравнению с hot start?",
+      "options": [
+        "Warm — процесс убит, восстанавливаем savedInstanceState; hot — восстановление из облачного бэкапа",
+        "Warm — процесс живой, но Activity нужно пересоздать (например, её выгрузила система); hot — и процесс, и Activity живы, окно просто возвращается на передний план",
+        "Warm и hot — синонимы",
+        "Warm — старт из виджета, hot — из иконки"
+      ],
+      "correctAnswer": "1",
+      "explanation": "Warm дешевле cold (нет fork/Zygote, классы уже загружены), но дороже hot: пересоздание Activity, layout, восстановление состояния. Hot — просто bring-to-front, все view на месте. Практический вывод: в Vitals холодный и тёплый старт считаются отдельно и дают разные значения TimeToInitialDisplay.",
+      "tags": ["startup"],
+      "difficulty": 0.5
+    },
+    {
+      "id": "prs_003",
+      "type": "MCQ",
+      "level": 3,
+      "text": "Что недопустимо в Application.onCreate с точки зрения cold start?",
+      "options": [
+        "Инициализация crash-репортинга (Crashlytics)",
+        "Строгий минимальный набор + отложенная инициализация всего остального",
+        "Синхронный сетевой вызов (проверка версии / конфиг с сервера) до первого кадра",
+        "Регистрация дефолтных каналов уведомлений"
+      ],
+      "correctAnswer": "2",
+      "explanation": "Всё, что выполняется до первого кадра, прямо удлиняет холодный старт. Типичная ошибка: синхронный сетевой вызов (config/feature flags) прямо в onCreate — сотни миллисекунд даже на хорошей сети, зависания и риск ANR на плохой. Crash reporting допустим (нужен раньше, чем будет шанс упасть); каналы уведомлений, тяжёлые SDK, аналитику — лениво/асинхронно (App Startup, lazy).",
+      "tags": ["startup", "application"],
+      "difficulty": 0.55
+    },
+    {
+      "id": "prs_004",
+      "type": "TRUE_FALSE",
+      "level": 2,
+      "text": "Библиотека androidx.startup инициализирует компоненты через content provider (InitializationProvider), который выполняется до Application.onCreate; инициализаторы объявляются в метаданных манифеста.",
+      "options": ["Верно", "Неверно"],
+      "correctAnswer": "0",
+      "explanation": "InitializationProvider — content provider, который Android запускает раньше кода приложения: он читает манифестные метаданные androidx.startup и создаёт перечисленные Initializer'ы (automatic-режим). Ручной режим — AppInitializer.getInstance(context).initializeComponent(...). Ловушка: чтобы библиотечный Initializer не запускался автоматически, его метаданные удаляют тегом tools:node=\"remove\".",
+      "tags": ["startup", "app-startup"],
+      "difficulty": 0.55
+    },
+    {
+      "id": "prs_005",
+      "type": "INPUT",
+      "level": 2,
+      "text": "Интерфейс библиотеки androidx.startup, который реализуют для инициализации компонента (методы create и dependencies). Одно слово (английский термин).",
+      "options": null,
+      "correctAnswer": "initializer",
+      "explanation": "Initializer<T> — создаёт компонент и возвращает список зависимостей от других Initializer'ов, определяя порядок. В связке применяются StartupProfile/Baseline Profile для AOT-компиляции путей старта.",
+      "tags": ["startup", "app-startup"],
+      "difficulty": 0.45
+    },
+    {
+      "id": "prs_006",
+      "type": "CARD",
+      "level": 2,
+      "text": "План оптимизации cold start вашего приложения: назовите шаги по порядку.",
+      "options": null,
+      "correctAnswer": "1. Замерить «до»: Macrobenchmark (TimeToInitialDisplay / TimeToFullDisplay), Play Vitals, трейс Perfetto — понять, что именно съедает время\n2. Разбить путь: windowBackground/SplashScreen (система) → Application.onCreate → Activity → первый кадр; найти самую тяжёлую часть\n3. Application.onCreate — только критичное (crash reporting); остальное — App Startup или ручной lazy, никакой сети до первого кадра\n4. Данные первого экрана — из Room/кэша мгновенно, дозагрузка в фоне; скелетон вместо спиннера\n5. Baseline Profile (+ StartupProfile) — AOT критических путей старта\n6. R8/full-mode в release; сравнивать производительность только на release-сборках",
+      "explanation": "Методика важнее списка приёмов: первый шаг — замер, последний — повторный замер. Если в ответе нет Macrobenchmark/TTID и ленивой инициализации — ответ неполный. Хорошая точка: различать cold/warm/hot и сказать, какую метрику улучшили.",
+      "tags": ["startup", "optimization"],
+      "difficulty": 0.65
+    }
+  ]
+}

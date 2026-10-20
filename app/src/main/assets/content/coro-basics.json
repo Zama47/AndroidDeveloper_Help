@@ -1,0 +1,85 @@
+{
+  "version": 1,
+  "topic": "coro-basics",
+  "questions": [
+    {
+      "id": "crb_001",
+      "type": "MCQ",
+      "level": 2,
+      "text": "На каком диспетчере по умолчанию стартует блок viewModelScope.launch { ... }?",
+      "options": [
+        "Dispatchers.Main.immediate — UI-поток, причём если уже на main, блок начинается сразу без пересадки через очередь",
+        "Dispatchers.Default — пул на число ядер",
+        "Dispatchers.IO — пул для блокирующего I/O",
+        "На том же потоке, где создали scope, — может быть фоновым"
+      ],
+      "correctAnswer": "0",
+      "explanation": "viewModelScope создаётся с Dispatchers.Main.immediate. Отличие от обычного Main: immediate не переводит блок в конец очереди, если поток уже главный — экономит кадр и делает запуск предсказуемым. Ловушка: main-поток по умолчанию не значит, что сеть/БД там безопасны — для блокирующей работы обязателен withContext(IO/Default).",
+      "tags": ["coroutines", "viewmodelscope", "dispatchers"],
+      "difficulty": 0.45
+    },
+    {
+      "id": "crb_002",
+      "type": "MCQ",
+      "level": 1,
+      "text": "Можно ли из обычной (не suspend) функции вызвать suspend-функцию?",
+      "options": [
+        "Нет: только из другой suspend-функции или внутри корутины — launch/async/runBlocking",
+        "Да, компилятор сам обернёт вызов в корутину",
+        "Да, но только на главном потоке",
+        "Да, если функция объявлена в companion object"
+      ],
+      "correctAnswer": "0",
+      "explanation": "suspend требует контекста корутины — иначе компилятор не даст вызвать: нет объекта, в котором можно приостанавливаться. Выход: создать корутину (launch/async в scope, runBlocking для моста в синхронный код — например, в тестах или main()). Ловушка: runBlocking блокирует поток, в Android UI это причина замороженного interface — не используете на проде.",
+      "tags": ["coroutines", "suspend"],
+      "difficulty": 0.25
+    },
+    {
+      "id": "crb_003",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Куда отправить тяжёлый парсинг большого JSON-ответа (CPU-затратная работа)?",
+      "options": [
+        "Dispatchers.Default — пул по размеру числа ядер, рассчитан на CPU-bound задачи",
+        "Dispatchers.IO — он «быстрее» и подходит для всего",
+        "Dispatchers.Main — там чаще всего свободно после анимаций",
+        "Dispatchers.Unconfined — пул без ограничений"
+      ],
+      "correctAnswer": "0",
+      "explanation": "Default — пул из ~числа ядер под CPU-работу (парсинг, криптография, сортировки); IO — ~64 потока с гибким масштабированием под блокирующий I/O (файлы, сокеты, JDBC-style код). Ловушка: заливать CPU-задачами IO-пул — истощите потоки под реальные I/O, и всё заблокируется. Unconfined не для продукции: переключает контекст непредсказуемо.",
+      "tags": ["coroutines", "dispatchers"],
+      "difficulty": 0.4
+    },
+    {
+      "id": "crb_004",
+      "type": "TRUE_FALSE",
+      "level": 1,
+      "text": "Вызов suspend-функции всегда блокирует поток, из которого он выполнен.",
+      "options": ["Верно", "Неверно"],
+      "correctAnswer": "1",
+      "explanation": "Suspend — про приостановку, а не блокировку: в точках suspension (delay, await, withContext) корутина освобождает поток, и тот работает дальше. Поток занят лишь реально вычисляющимся кодом — как обычные функции. Уточнение: если внутри suspend-функции только CPU-код без suspension-точек, поток занят до конца — suspend-модификатор сам по себе ничего не «разгружает».",
+      "tags": ["coroutines", "suspend", "threads"],
+      "difficulty": 0.35
+    },
+    {
+      "id": "crb_005",
+      "type": "INPUT",
+      "level": 1,
+      "text": "Назовите имя (одно слово, camelCase) CoroutineScope, встроенного в ViewModel: он отменяется в onCleared(), поэтому корутины ViewModel не утекают.",
+      "options": null,
+      "correctAnswer": "viewModelScope",
+      "explanation": "viewModelScope — готовый scope от androidx.lifecycle, который отменяется при удалении ViewModel (onCleared). Для Activity/Fragment аналогично есть lifecycleScope; для клиентов сети и репозиториев создайте собственный scope с SupervisorJob и отменяйте его явно. Основной антипаттерн — GlobalScope: корутины переживают экран и утекают.",
+      "tags": ["coroutines", "viewmodelscope"],
+      "difficulty": 0.2
+    },
+    {
+      "id": "crb_006",
+      "type": "CARD",
+      "level": 2,
+      "text": "Экран должен показать профиль и список постов: два независимых запроса. Как организовать корутины в ViewModel, чтобы загрузка шла параллельно и не утекала?",
+      "options": null,
+      "correctAnswer": "- viewModelScope.launch { ... } — корутина привязана к ViewModel, отменится в onCleared\n- Внутри: val profile = async { repo.profile() }; val posts = async { repo.posts() } — оба запроса стартуют сразу, параллельно\n- Затем: render(profile.await(), posts.await()) — await дожидается каждого\n- Structured concurrency: при отмене scope отменяются оба child автоматически, вручную ничего закрывать не надо\n- Ловушка: сначала profile().await() и только потом posts() — запросы станут последовательными, параллельность потеряна",
+      "explanation": "Подсказка: где именно вставить async, чтобы запросы шли одновременно, и что будет при отмене экрана."
+    }
+  ]
+}

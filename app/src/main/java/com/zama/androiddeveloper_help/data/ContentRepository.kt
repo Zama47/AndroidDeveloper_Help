@@ -20,9 +20,15 @@ class ContentRepository(private val context: Context) {
     }
 
     suspend fun loadQuestions(topicId: String): List<Question> = withContext(Dispatchers.IO) {
-        val raw = context.assets.open("content/$topicId.json")
-            .bufferedReader()
-            .use { it.readText() }
+        val candidates = listOf(
+            "content/$topicId.json",
+            "content/${topicId.replace('_', '-')}.json",
+            "content/${topicId.replace('-', '_')}.json"
+        )
+        val raw = candidates.firstNotNullOfOrNull { path ->
+            runCatching { context.assets.open(path) }.getOrNull()
+        }?.bufferedReader()?.use { it.readText() }
+            ?: throw java.io.FileNotFoundException("No questions file for topic '$topicId'")
         json.decodeFromString<QuestionsFile>(raw).questions
     }
 

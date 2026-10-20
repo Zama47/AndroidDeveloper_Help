@@ -1,0 +1,87 @@
+{
+  "version": 1,
+  "topic": "storage",
+  "questions": [
+    {
+      "id": "stor_001",
+      "type": "MCQ",
+      "level": 1,
+      "text": "Хранилище, которое Android-основной стек рекомендует для мелких настроек (тема, флаги) в новом приложении с корутинами:",
+      "options": [
+        "SharedPreferences",
+        "Preferences DataStore",
+        "Room с одной таблицей",
+        "Общий файл на внешнем хранилище"
+      ],
+      "correctAnswer": "1",
+      "explanation": "Preferences DataStore — асинхронная замена SharedPreferences: чтение через Flow, запись через suspend edit { }, без ANR от синхронных чтений. SharedPreferences остаётся только для legacy; Room для настроек — оверкилл; общие файлы — не частная песочница приложения.",
+      "tags": ["datastore", "basics"],
+      "difficulty": 0.2
+    },
+    {
+      "id": "stor_002",
+      "type": "MCQ",
+      "level": 1,
+      "text": "Какое хранилище лежит в основе Room?",
+      "options": [
+        "В собственных XML-файлах",
+        "В SQLite-базе",
+        "В SharedPreferences",
+        "В protobuf-файле DataStore"
+      ],
+      "correctAnswer": "1",
+      "explanation": "Room — абстракция над SQLite: аннотационный процессор генерирует DAO-код и проверяет SQL при сборке. Отсюда все плюшки: @Query, индексы, миграции, Flow-запросы. Ловушка: не путать с DataStore — он не для сложных запросов.",
+      "tags": ["room"],
+      "difficulty": 0.2
+    },
+    {
+      "id": "stor_003",
+      "type": "TRUE_FALSE",
+      "level": 1,
+      "text": "Файл, сохранённый в context.cacheDir, может быть удалён системой при нехватке места на устройстве.",
+      "options": ["Верно", "Неверно"],
+      "correctAnswer": "0",
+      "explanation": "cacheDir — очищаемое хранилище; система вправе стереть что угодно при заполнении диска. Данные там должны быть восстановимы (кэш ответов, превью). Пользовательские данные и настройки — filesDir/DataStore/Room, а не cache.",
+      "tags": ["files"],
+      "difficulty": 0.25
+    },
+    {
+      "id": "stor_004",
+      "type": "INPUT",
+      "level": 2,
+      "text": "Как называется провайдер, через который приложение раздаёт свой приватный файл другим приложениям по content://-URI? Введите два слова.",
+      "options": null,
+      "correctAnswer": "FileProvider",
+      "explanation": "FileProvider (подкласс ContentProvider, из androidx.core.content) — стандартный способ раздать файл: конфиг путей в res/xml, getUriForFile(), Intent с FLAG_GRANT_READ_URI_PERMISSION. Прямые file://-URI при передачи в чужой Intent с Android 7 дают FileUriExposedException.",
+      "tags": ["files", "contentprovider"],
+      "difficulty": 0.35
+    },
+    {
+      "id": "stor_005",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Приложение должно хранить медиа-фото пользователя в общей галерее (Android 10+). Самый канонический путь:",
+      "options": [
+        "Записать напрямую в /storage/emulated/0/DCIM через File",
+        "Вставить запись через MediaStore (ContentResolver.insert), получив content-URI",
+        "Скопировать в filesDir и отдать FileProvider-ом",
+        "Требовать WRITE_EXTERNAL_STORAGE и писать как раньше"
+      ],
+      "correctAnswer": "1",
+      "explanation": "В scoped storage общие медиа живут через MediaStore: insert с ContentValues (DisplayName, RelativePath, MIME) возвращает URI для записи байтов. Для файлов вашего собственного приложения разрешения не нужны. Прямые пути — устаревший API, access-пермишены заменены READ_MEDIA_*. FileProvider тут не для галереи, а для точечного обмена.",
+      "tags": ["mediastore", "storage"],
+      "difficulty": 0.5
+    },
+    {
+      "id": "stor_006",
+      "type": "CARD",
+      "level": 3,
+      "text": "Соотнесите данные приложения с правильными хранилищами: настройки ONBOARDING-флага, каталог книг с поиском, фото, снятые камерой и чистящиеся после загрузки на сервер, токен авторизации, сохраняемый надёжно между перезапусками.",
+      "options": null,
+      "correctAnswer": "- Флаг onboarding → Preferences DataStore (асинхронная замена SharedPreferences)\n- Каталог книг с поиском и фильтрами → Room: SQL-запросы, индексы, Flow, миграции\n- Фото, временные до загрузки на сервер → cacheDir/getExternalCacheDir (реконструируемые, система может чистить); после успешной загрузки — удалить\n- Токен авторизации → EncryptedSharedPreferences или DataStore с шифрованием (Keystore) — секрет не хранят в открытом виде и не логируют",
+      "explanation": "Вопрос проверяет интуицию выбора: settings → DataStore, relations/search → Room, cache → cacheDir, secrets → encrypted хранилища. Ловушка по токену: DataStore «как есть» без шифрования — тоже часто спрашивают, надо уточнить что схема хранения зависит от требований к секретам.",
+      "tags": ["design", "datastore", "room"],
+      "difficulty": 0.5
+    }
+  ]
+}

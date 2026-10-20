@@ -277,7 +277,7 @@ class MainViewModel(
         viewModelScope.launch {
             _quiz.update { QuizUiState(loading = true) }
             val topics = if (topicSelection.isEmpty()) {
-                contentRepository.loadTopics().map { it.id }
+                contentRepository.loadTopics().filter { it.parentId == null }.map { it.id }
             } else topicSelection
             val mapping = mutableMapOf<String, String>()
             val pool = mutableListOf<Question>()

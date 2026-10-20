@@ -1,0 +1,96 @@
+{
+  "version": 1,
+  "topic": "core-lifecycle",
+  "questions": [
+    {
+      "id": "corl_001",
+      "type": "MCQ",
+      "level": 1,
+      "text": "Activity открывается впервые и становится видимой и активной. Какой порядок колбэков?",
+      "options": [
+        "onCreate → onStart → onResume",
+        "onCreate → onResume → onStart",
+        "onStart → onCreate → onResume",
+        "onAttach → onStart → onRestart"
+      ],
+      "correctAnswer": "0",
+      "explanation": "Каноническая цепочка холодного запуска: onCreate (создание, setContentView), onStart (Activity видима), onResume (на переднем плане, получает фокус). onAttach нужно не к Activity — это колбэк Fragment, а порядок onStart → onCreate физически невозможен.",
+      "tags": ["lifecycle", "activity"],
+      "difficulty": 0.2
+    },
+    {
+      "id": "corl_002",
+      "type": "TRUE_FALSE",
+      "level": 2,
+      "text": "При открытии обычного AlertDialog поверх Activity Activity переходит в состояние onStop.",
+      "options": ["Верно", "Неверно"],
+      "correctAnswer": "1",
+      "explanation": "Классическая ловушка: Activity частично перекрыта, но остаётся видимой, поэтому вызывается только onPause (состояние Started, не Resumed). onStop срабатывает, когда Activity полностью не видна — открыт полноэкранный диалог, другой экран или приложение свернуто. Полноэкранное перекрытие дало бы другой ответ.",
+      "tags": ["lifecycle", "onPause"],
+      "difficulty": 0.45
+    },
+    {
+      "id": "corl_003",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Черновик сообщения, введённый пользователем, должен пережить и поворот экрана, и убийство процесса в фоне. Куда его положить?",
+      "options": [
+        "ViewModel с SavedStateHandle",
+        "Поле companion object в Activity",
+        "@Volatile-поле внутри ViewModel",
+        "Только onSaveInstanceState без ViewModel"
+      ],
+      "correctAnswer": "0",
+      "explanation": "SavedStateHandle в ViewModel покрывает оба сценария: при config change живёт сам ViewModel, при process death его данные восстанавливаются из Bundle. Companion object — глобальный утечный стейт, который при process death всё равно теряется. Чистый onSaveInstanceState без ViewModel оправдан лишь для мелких View-состояний, а хорошее @Volatile-поле на процесс смерть не спасает.",
+      "tags": ["lifecycle", "viewmodel", "savedstate"],
+      "difficulty": 0.4
+    },
+    {
+      "id": "corl_004",
+      "type": "INPUT",
+      "level": 2,
+      "text": "Какой колбэк Activity предназначен для восстановления Bundle, сохранённого через onSaveInstanceState (вызывается после onStart)?",
+      "correctAnswer": "onRestoreInstanceState",
+      "explanation": "Освобождение Bundle возможно и в onCreate(savedInstanceState), но каноническое место восстановления иерархии View — onRestoreInstanceState, вызываемое после onStart. Ловушка: при process death и при config change этот метод вызывается одинаково, но бизнес-данные лучше держать в ViewModel/SavedStateHandle.",
+      "tags": ["lifecycle", "savedstate"],
+      "difficulty": 0.35
+    },
+    {
+      "id": "corl_005",
+      "type": "CARD",
+      "level": 3,
+      "text": "Система убила процесс приложения в фоне, пользователь вернулся через лаунчер. Перечислите, что восстановится, а что потеряется.",
+      "correctAnswer": "### Восстановится\n- `Bundle` из `onSaveInstanceState` — выделение, scroll, черновик\n- `SavedStateHandle` ViewModel — восстановится после процессного убийства\n- данные в Room/DataStore/SharedPreferences\n- стек бэк-назад\n\n### Потеряется\n- все поля ViewModel, собранные Flow, состояние коллекций\n- статические и объектные кэши, кэш OkHttp/Retrofit\n- запущенные CoroutineScope и Job'ы\n- in-memory синглтоны, собранные через DI\n\nВывод: в onCreate при `savedInstanceState != null` идёт восстановление критичных данных из персистентного слоя, а не из памяти.",
+      "explanation": "Совет: отделяйте состояние View (Bundle) от бизнес-состояния (Room/DataStore). ViewModel спасает только при config change, а не при process death.",
+      "tags": ["lifecycle", "process-death"],
+      "difficulty": 0.55
+    },
+    {
+      "id": "corl_006",
+      "type": "MCQ",
+      "level": 2,
+      "text": "Активность собирает StateFlow. Какая конструкция безопаснее всего, чтобы сбор не продолжался после onStop и не крашнул UI в фоне?",
+      "options": [
+        "lifecycleScope.launch + repeatOnLifecycle(Lifecycle.State.STARTED)",
+        "lifecycleScope.launch + обычный collect",
+        "GlobalScope.launch + collect",
+        "viewModelScope.launch + collect внутри Activity"
+      ],
+      "correctAnswer": "0",
+      "explanation": "repeatOnLifecycle(STARTED) — официальная рекомендация: корутина, собирающая Flow, отменяется при переходе ниже STARTED и создаётся заново при возврате. Живой lifecycleScope.launch тоже делает сбор — но продолжает и в фоне, где UI-логика уже бессмысленна и может крашнуть. viewModelScope вообще не связан с lifecycle Activity, поэтому туда сущности UI-состояния класть не стоит.",
+      "tags": ["lifecycle", "lifecyclescope", "repeatonlifecycle"],
+      "difficulty": 0.4
+    },
+    {
+      "id": "corl_007",
+      "type": "TRUE_FALSE",
+      "level": 2,
+      "text": "ViewModel переживает пересоздание Activity при повороте экрана, но теряется при убийстве процесса.",
+      "options": ["Верно", "Неверно"],
+      "correctAnswer": "0",
+      "explanation": "ViewModel привязана к ViewModelStoreOwner; при config change «новая» Activity получает тот же ViewModelStore. При process death хранилище уходит вместе с процессом — восстанавливается лишь SavedStateHandle. Поэтому критичные данные нельзя держать только в ViewModel-памяти.",
+      "tags": ["lifecycle", "viewmodel", "process-death"],
+      "difficulty": 0.3
+    }
+  ]
+}
